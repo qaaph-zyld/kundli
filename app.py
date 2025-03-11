@@ -131,15 +131,16 @@ def calculate_chart_internal(data):
     # Initialize calculator
     try:
         calculator = VedicCalculator(
-            datetime=local_time,
-            latitude=latitude,
-            longitude=longitude,
-            ayanamsa=ayanamsa,
-            house_system=house_system
+            date=local_time,
+            lat=latitude,
+            lon=longitude,
+            ayanamsa=ayanamsa
         )
         print("VedicCalculator initialized successfully")
     except Exception as e:
         print(f"Error initializing calculator: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Error initializing calculator: {str(e)}'}), 500
     
     # Calculate houses

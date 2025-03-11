@@ -199,8 +199,9 @@ class VedicCalculator:
         dasha_years = [7, 20, 6, 10, 7, 18, 16, 19, 17]
         
         # Find starting Mahadasha based on Moon's Nakshatra
-        nakshatra_lord_index = self.NAKSHATRAS.index((nakshatra_name, self.NAKSHATRAS[0][1]))
-        start_dasha_index = nakshatra_lord_index % 9
+        nakshatra_names = [nak[0] for nak in self.NAKSHATRAS]
+        nakshatra_index = nakshatra_names.index(nakshatra_name)
+        start_dasha_index = nakshatra_index % 9
         
         dashas = []
         current_date = self.date

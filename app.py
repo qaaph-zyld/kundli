@@ -50,96 +50,95 @@ def calculate_chart():
         local_tz = pytz.timezone(timezone)
         local_time = local_tz.localize(local_time)
         
-        # Convert to UTC
-        utc_time = local_time.astimezone(pytz.UTC)
-        
         # Get coordinates
-        try:
-            latitude = float(data.get('latitude', 0))
-            longitude = float(data.get('longitude', 0))
-        except ValueError:
-            return jsonify({'error': 'Invalid coordinate format'}), 400
+        latitude = float(data.get('latitude', 0))
+        longitude = float(data.get('longitude', 0))
         
-        # Get ayanamsa and house system if provided
+        # Get ayanamsa and house system
         ayanamsa = data.get('ayanamsa', 'Lahiri')
-        house_system = data.get('houseSystem', 'W')  # Default to Whole Sign houses
+        house_system = data.get('houseSystem', 'W')
         
-        # Calculate chart data
-        calculator = VedicCalculator(utc_time, latitude, longitude, ayanamsa)
-        
-        # Get house cusps
-        house_cusps = calculator.get_house_cusps(house_system)
-        ascendant_deg = house_cusps[0]
-        
-        # Calculate all planet positions
-        planet_positions = {}
-        for planet in ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu']:
-            planet_positions[planet] = calculator.get_planet_position(planet)
-        
-        # Calculate Panchang details
-        panchang = calculator.calculate_panchang()
-        
-        # Calculate Upagrahas
-        upagrahas = calculator.calculate_upagrahas()
-        
-        # Calculate Vimshottari Dasha
-        dashas = calculator.calculate_vimshottari_dasha()
-        
-        # Calculate traditional time units
-        local_hour = local_time.hour + local_time.minute/60.0 + local_time.second/3600.0
-        ghati, vighati, pal = calculator.convert_to_ghati_pal(local_hour)
-        
-        # Format response
-        chart_data = {
-            'ascendant': {
-                'longitude': float(ascendant_deg),
-                'sign': calculator.ZODIAC_SIGNS[int(ascendant_deg / 30)],
-                'degree': float(ascendant_deg % 30),
-                'nakshatra': calculator.get_nakshatra(ascendant_deg)[0],
-                'pada': calculator.get_nakshatra(ascendant_deg)[1]
-            },
-            'planets': [],
-            'houses': [],
-            'panchang': panchang,
-            'upagrahas': upagrahas,
-            'dashas': dashas,
-            'timeInfo': {
-                'local': local_time.strftime('%Y-%m-%d %H:%M:%S %Z'),
-                'utc': utc_time.strftime('%Y-%m-%d %H:%M:%S %Z'),
-                'ghati': ghati,
-                'vighati': vighati,
-                'pal': pal,
-                'ayanamsa': calculator._calculate_ayanamsa()
+        # Initialize calculator
+        try:
+            calculator = VedicCalculator(local_time, latitude, longitude, ayanamsa)
+            
+            # Calculate houses
+            try:
+                houses = calculator.calculate_houses(house_system)
+                print("Houses calculated successfully")
+            except Exception as e:
+                print(f"Error calculating houses: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                houses = {}
+            
+            # Calculate planets
+            try:
+                planets = {}
+                for planet in ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu']:
+                    planets[planet] = calculator.get_planet_position(planet)
+                print("Planets calculated successfully")
+            except Exception as e:
+                print(f"Error calculating planets: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                planets = {}
+            
+            # Calculate Panchang
+            try:
+                panchang = calculator.calculate_panchang()
+                print("Panchang calculated successfully")
+            except Exception as e:
+                print(f"Error calculating panchang: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                panchang = {}
+            
+            # Calculate Upagrahas
+            try:
+                upagrahas = calculator.calculate_upagrahas()
+                print("Upagrahas calculated successfully")
+            except Exception as e:
+                print(f"Error calculating upagrahas: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                upagrahas = {}
+            
+            # Calculate Vimshottari Dasha
+            try:
+                dasha = calculator.calculate_vimshottari_dasha()
+                print("Vimshottari Dasha calculated successfully")
+            except Exception as e:
+                print(f"Error calculating vimshottari dasha: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                dasha = []
+            
+            # Prepare response
+            result = {
+                'date': local_time.strftime('%Y-%m-%d'),
+                'time': local_time.strftime('%H:%M:%S'),
+                'timezone': timezone,
+                'latitude': latitude,
+                'longitude': longitude,
+                'ayanamsa': ayanamsa,
+                'houses': houses,
+                'planets': planets,
+                'panchang': panchang,
+                'upagrahas': upagrahas,
+                'dasha': dasha
             }
-        }
-        
-        # Add planet data
-        for planet_name, planet_data in planet_positions.items():
-            chart_data['planets'].append({
-                'name': planet_name,
-                'sign': planet_data['sign'],
-                'degree': planet_data['degree'],
-                'longitude': planet_data['longitude'],
-                'dignity': planet_data['dignity'],
-                'nakshatra': planet_data['nakshatra'],
-                'pada': planet_data['pada'],
-                'isRetrograde': planet_data.get('is_retrograde', False)
-            })
-        
-        # Add house data
-        for i, cusp in enumerate(house_cusps, 1):
-            sign_num = int(cusp / 30)
-            chart_data['houses'].append({
-                'number': i,
-                'longitude': float(cusp),
-                'sign': calculator.ZODIAC_SIGNS[sign_num],
-                'degree': float(cusp % 30)
-            })
-        
-        return jsonify(chart_data)
-        
+            
+            return jsonify(result)
+        except Exception as e:
+            print(f"Error calculating chart: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': str(e)}), 500
     except Exception as e:
-        print(f"Error calculating chart: {e}")
+        print(f"Error processing request: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/')

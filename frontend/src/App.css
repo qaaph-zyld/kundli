@@ -1,0 +1,354 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f5f5f5;
+}
+
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 1rem;
+  color: white;
+}
+
+.App-header h1 {
+  margin: 0;
+}
+
+main {
+  padding: 1rem;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.input-section {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.time-group {
+  margin-bottom: 1.5rem;
+}
+
+.time-inputs {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.time-inputs input[type="time"] {
+  flex: 2;
+}
+
+.seconds-input {
+  flex: 1;
+  max-width: 70px;
+}
+
+.am-pm-toggle {
+  display: flex;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.am-pm-toggle button {
+  padding: 0.75rem 1rem;
+  border: none;
+  background-color: #f0f0f0;
+  cursor: pointer;
+  flex: 1;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.am-pm-toggle button.active {
+  background-color: #4285f4;
+  color: white;
+}
+
+.city-dropdown {
+  position: absolute;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  width: 100%;
+  z-index: 10;
+}
+
+.city-dropdown li {
+  padding: 0.75rem;
+  cursor: pointer;
+}
+
+.city-dropdown li:hover {
+  background-color: #f5f5f5;
+}
+
+.manual-coords-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.manual-coords-toggle input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
+}
+
+.manual-coords-toggle label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.manual-coordinates {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+.calculation-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.calculate-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.calculate-btn:hover {
+  background-color: #356ac3;
+}
+
+.calculate-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #d32f2f;
+  margin-top: 0.5rem;
+  text-align: left;
+}
+
+/* Chart display styles */
+.chart-section {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chart-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.ascendant-info, .time-info {
+  text-align: left;
+}
+
+.ascendant-info h3, .time-info h3 {
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.planet-table, .house-table {
+  margin-bottom: 2rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+th, td {
+  border: 1px solid #eee;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+th {
+  background-color: #f5f5f5;
+  font-weight: 500;
+}
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.zodiac-symbol, .planet-symbol {
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.save-kundli {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.save-kundli input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.save-kundli button {
+  padding: 0.75rem 1.5rem;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.save-kundli button:hover {
+  background-color: #3e8e41;
+}
+
+.save-kundli button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Saved kundlis section */
+.saved-kundlis {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.kundli-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.saved-kundli-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.kundli-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.kundli-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.kundli-actions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.kundli-actions button:first-child {
+  background-color: #4285f4;
+  color: white;
+}
+
+.kundli-actions button:first-child:hover {
+  background-color: #356ac3;
+}
+
+.kundli-actions button:last-child {
+  background-color: #f44336;
+  color: white;
+}
+
+.kundli-actions button:last-child:hover {
+  background-color: #d32f2f;
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 768px) {
+  .chart-info {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .calculation-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .save-kundli {
+    flex-direction: column;
+  }
+}

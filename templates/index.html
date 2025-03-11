@@ -46,6 +46,122 @@
         .test-profile-btn:hover {
             background-color: #e0e0e0;
         }
+        
+        /* Results styling */
+        .results-container {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .chart-container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        
+        .planet-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .planet-table th, .planet-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .planet-table th {
+            background-color: #f2f2f2;
+        }
+        
+        .planet-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .planet-table tr:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .exalted {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        
+        .debilitated {
+            color: #c62828;
+            font-weight: bold;
+        }
+        
+        .own-sign {
+            color: #1565c0;
+            font-weight: bold;
+        }
+        
+        .friend-sign {
+            color: #6a1b9a;
+        }
+        
+        .enemy-sign {
+            color: #ef6c00;
+        }
+        
+        .dasha-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .dasha-table th, .dasha-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .dasha-table th {
+            background-color: #f2f2f2;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .tab.active {
+            background-color: #fff;
+            border-bottom: 1px solid #fff;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            margin-top: -1px;
+            border-radius: 0 5px 5px 5px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .zodiac-sign {
+            font-size: 1.2em;
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -86,15 +202,62 @@
             <button onclick="calculateKundli()">Calculate</button>
         </div>
         
-        <div id="results" style="display: none;">
-            <h2>Results</h2>
-            <div class="chart-container">
-                <div class="chart" id="chart"></div>
+        <div class="results-container" id="results">
+            <h2>Birth Chart Results</h2>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('chart-tab')">Chart</div>
+                <div class="tab" onclick="showTab('planets-tab')">Planets</div>
+                <div class="tab" onclick="showTab('dasha-tab')">Dasha</div>
+                <div class="tab" onclick="showTab('panchang-tab')">Panchang</div>
             </div>
             
-            <div class="planet-positions">
-                <h3>Planet Positions</h3>
-                <div id="positions"></div>
+            <div id="chart-tab" class="tab-content active">
+                <div class="chart-container" id="chart">
+                    <p>Chart visualization will be implemented here</p>
+                </div>
+            </div>
+            
+            <div id="planets-tab" class="tab-content">
+                <h3>Planetary Positions</h3>
+                <table class="planet-table">
+                    <thead>
+                        <tr>
+                            <th>Planet</th>
+                            <th>Sign</th>
+                            <th>Degrees</th>
+                            <th>Nakshatra</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positions">
+                        <!-- Planet positions will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="dasha-tab" class="tab-content">
+                <h3>Vimshottari Dasha</h3>
+                <table class="dasha-table">
+                    <thead>
+                        <tr>
+                            <th>Planet</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dasha-results">
+                        <!-- Dasha periods will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="panchang-tab" class="tab-content">
+                <h3>Panchang Details</h3>
+                <div id="panchang-results">
+                    <!-- Panchang details will be inserted here -->
+                </div>
             </div>
         </div>
         
@@ -215,15 +378,105 @@
             const positionsDiv = document.getElementById('positions');
             positionsDiv.innerHTML = '';
             
+            // Zodiac sign symbols
+            const zodiacSymbols = {
+                'Aries': '♈',
+                'Taurus': '♉',
+                'Gemini': '♊',
+                'Cancer': '♋',
+                'Leo': '♌',
+                'Virgo': '♍',
+                'Libra': '♎',
+                'Scorpio': '♏',
+                'Sagittarius': '♐',
+                'Capricorn': '♑',
+                'Aquarius': '♒',
+                'Pisces': '♓'
+            };
+            
+            // Planet symbols
+            const planetSymbols = {
+                'Sun': '☉',
+                'Moon': '☽',
+                'Mercury': '☿',
+                'Venus': '♀',
+                'Mars': '♂',
+                'Jupiter': '♃',
+                'Saturn': '♄',
+                'Rahu': '☊',
+                'Ketu': '☋'
+            };
+            
+            // Display planet positions in table
             for (const [planet, info] of Object.entries(data.planets)) {
-                const planetDiv = document.createElement('div');
-                planetDiv.className = 'planet-info';
-                planetDiv.innerHTML = `
-                    <strong>${planet}:</strong> 
-                    ${info.sign} ${info.degree}° 
-                    (${info.dignity})
+                const row = document.createElement('tr');
+                
+                // Add dignity class
+                let dignityClass = '';
+                if (info.dignity === 'Exalted') {
+                    dignityClass = 'exalted';
+                } else if (info.dignity === 'Debilitated') {
+                    dignityClass = 'debilitated';
+                } else if (info.dignity === 'Own sign') {
+                    dignityClass = 'own-sign';
+                } else if (info.dignity === "Friend's sign") {
+                    dignityClass = 'friend-sign';
+                } else if (info.dignity === "Enemy's sign") {
+                    dignityClass = 'enemy-sign';
+                }
+                
+                // Format degree with minutes and seconds
+                const degree = parseFloat(info.degree);
+                const degreeInt = Math.floor(degree);
+                const minutes = Math.floor((degree - degreeInt) * 60);
+                const seconds = Math.floor(((degree - degreeInt) * 60 - minutes) * 60);
+                const formattedDegree = `${degreeInt}° ${minutes}' ${seconds}"`;
+                
+                row.innerHTML = `
+                    <td>${planetSymbols[planet] || ''} ${planet}</td>
+                    <td><span class="zodiac-sign">${zodiacSymbols[info.sign] || ''}</span> ${info.sign}</td>
+                    <td>${formattedDegree}</td>
+                    <td>${info.nakshatra || '-'}</td>
+                    <td class="${dignityClass}">${info.dignity}${info.retrograde ? ' (R)' : ''}</td>
                 `;
-                positionsDiv.appendChild(planetDiv);
+                
+                positionsDiv.appendChild(row);
+            }
+            
+            // Display Dasha periods
+            const dashaDiv = document.getElementById('dasha-results');
+            dashaDiv.innerHTML = '';
+            
+            if (data.dasha && data.dasha.length > 0) {
+                data.dasha.forEach(period => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${planetSymbols[period.planet] || ''} ${period.planet}</td>
+                        <td>${period.start}</td>
+                        <td>${period.end}</td>
+                        <td>${period.duration}</td>
+                    `;
+                    dashaDiv.appendChild(row);
+                });
+            } else {
+                dashaDiv.innerHTML = '<tr><td colspan="4">No dasha information available</td></tr>';
+            }
+            
+            // Display Panchang details
+            const panchangDiv = document.getElementById('panchang-results');
+            panchangDiv.innerHTML = '';
+            
+            if (data.panchang) {
+                const panchangDetails = document.createElement('div');
+                panchangDetails.innerHTML = `
+                    <p><strong>Tithi:</strong> ${data.panchang.tithi || '-'}</p>
+                    <p><strong>Nakshatra:</strong> ${data.panchang.nakshatra || '-'}</p>
+                    <p><strong>Yoga:</strong> ${data.panchang.yoga || '-'}</p>
+                    <p><strong>Karana:</strong> ${data.panchang.karana || '-'}</p>
+                `;
+                panchangDiv.appendChild(panchangDetails);
+            } else {
+                panchangDiv.innerHTML = '<p>No panchang information available</p>';
             }
             
             // Draw chart
@@ -237,6 +490,25 @@
             // Add chart drawing logic here
             // This is a placeholder - you'll need to implement the actual chart drawing
             chart.innerHTML = '<p>Chart visualization will be implemented here</p>';
+        }
+        
+        function showTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabId).classList.add('active');
+            
+            // Add active class to clicked tab button
+            const tabIndex = ['chart-tab', 'planets-tab', 'dasha-tab', 'panchang-tab'].indexOf(tabId);
+            document.querySelectorAll('.tab')[tabIndex].classList.add('active');
         }
         
         function loadSavedKundlis() {

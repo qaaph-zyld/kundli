@@ -2,6 +2,5 @@ Flask==2.3.3
 Werkzeug==2.3.7
 pytz==2023.3
 python-dateutil==2.8.2
-astropy==6.0.0
+pyswisseph==2.10.3.2
 numpy>=2.0.0
-skyfield==1.46

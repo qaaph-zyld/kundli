@@ -1,190 +1,367 @@
-"""
-Core astronomical calculations for Vedic astrology
-"""
 from datetime import datetime
+from typing import List, Dict, Tuple, Any, Optional
 import math
-from functools import lru_cache
-from typing import Dict, Tuple, List
-from skyfield.api import load, wgs84
-from skyfield.positionlib import Geocentric
+import swisseph as swe
+import pytz
+
+# Planet IDs in Swiss Ephemeris
+PLANET_IDS = {
+    'Sun': swe.SUN,
+    'Moon': swe.MOON,
+    'Mercury': swe.MERCURY,
+    'Venus': swe.VENUS,
+    'Mars': swe.MARS,
+    'Jupiter': swe.JUPITER,
+    'Saturn': swe.SATURN,
+    'Rahu': swe.MEAN_NODE,  # North Node
+    'Ketu': None,  # South Node, calculated from Rahu
+    'Uranus': swe.URANUS,
+    'Neptune': swe.NEPTUNE,
+    'Pluto': swe.PLUTO
+}
+
+# Upagraha calculations
+UPAGRAHA_LONGITUDES = {
+    'Dhuma': 133.0,
+    'Vyatipata': 313.0,
+    'Parivesha': 133.0,
+    'Indrachapa': 313.0,
+    'Upaketu': 313.0
+}
 
 class VedicCalculator:
-    """
-    Core calculator class for Vedic astrology calculations using Lahiri ayanamsa
-    """
-    # Zodiac signs in order
-    ZODIAC_SIGNS = [
-        'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-        'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+    ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 
+                    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
+    
+    NAKSHATRAS = [
+        ('Ashwini', 'Ashwini Kumaras'),
+        ('Bharani', 'Yama'),
+        ('Krittika', 'Agni'),
+        ('Rohini', 'Brahma'),
+        ('Mrigashira', 'Chandra'),
+        ('Ardra', 'Rudra'),
+        ('Punarvasu', 'Aditi'),
+        ('Pushya', 'Brihaspati'),
+        ('Ashlesha', 'Sarpa'),
+        ('Magha', 'Pitris'),
+        ('Purva Phalguni', 'Bhaga'),
+        ('Uttara Phalguni', 'Aryaman'),
+        ('Hasta', 'Savitar'),
+        ('Chitra', 'Tvashtar'),
+        ('Swati', 'Vayu'),
+        ('Vishakha', 'Indra-Agni'),
+        ('Anuradha', 'Mitra'),
+        ('Jyeshtha', 'Indra'),
+        ('Mula', 'Nirrti'),
+        ('Purva Ashadha', 'Apas'),
+        ('Uttara Ashadha', 'Vishvedevas'),
+        ('Shravana', 'Vishnu'),
+        ('Dhanishta', 'Vasus'),
+        ('Shatabhisha', 'Varuna'),
+        ('Purva Bhadrapada', 'Ajaikapada'),
+        ('Uttara Bhadrapada', 'Ahirbudhnya'),
+        ('Revati', 'Pushan')
     ]
-    
-    # Planet dignities
-    EXALTATION = {
-        'Sun': 'Aries',
-        'Moon': 'Taurus',
-        'Mars': 'Capricorn',
-        'Mercury': 'Virgo',
-        'Jupiter': 'Cancer',
-        'Venus': 'Pisces',
-        'Saturn': 'Libra'
+
+    # Tithi names
+    TITHIS = [
+        'Pratipada', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami',
+        'Shashthi', 'Saptami', 'Ashtami', 'Navami', 'Dashami',
+        'Ekadashi', 'Dwadashi', 'Trayodashi', 'Chaturdashi', 'Purnima/Amavasya'
+    ]
+
+    # Karana names
+    KARANAS = [
+        'Bava', 'Balava', 'Kaulava', 'Taitila', 'Garija',
+        'Vanija', 'Vishti', 'Shakuni', 'Chatushpada', 'Naga'
+    ]
+
+    # Yoga names
+    YOGAS = [
+        'Vishkambha', 'Priti', 'Ayushman', 'Saubhagya', 'Shobhana',
+        'Atiganda', 'Sukarman', 'Dhriti', 'Shula', 'Ganda',
+        'Vriddhi', 'Dhruva', 'Vyaghata', 'Harshana', 'Vajra',
+        'Siddhi', 'Vyatipata', 'Variyan', 'Parigha', 'Shiva',
+        'Siddha', 'Sadhya', 'Shubha', 'Shukla', 'Brahma',
+        'Indra', 'Vaidhriti'
+    ]
+
+    # Various Ayanamsa options
+    AYANAMSA_OPTIONS = {
+        'Lahiri': swe.SIDM_LAHIRI,
+        'Raman': swe.SIDM_RAMAN,
+        'KP': swe.SIDM_KRISHNAMURTI,
+        'Yukteshwar': swe.SIDM_YUKTESHWAR,
+        'Fagan/Bradley': swe.SIDM_FAGAN_BRADLEY
     }
     
-    DEBILITATION = {
-        'Sun': 'Libra',
-        'Moon': 'Scorpio',
-        'Mars': 'Cancer',
-        'Mercury': 'Pisces',
-        'Jupiter': 'Capricorn',
-        'Venus': 'Virgo',
-        'Saturn': 'Aries'
+    # Planet dignities 
+    DIGNITIES = {
+        'Sun': {'exalted': 'Aries', 'moolatrikona': 'Leo', 'own': ['Leo'], 
+               'friend': ['Moon', 'Mars', 'Jupiter'], 'enemy': ['Venus', 'Saturn']},
+        'Moon': {'exalted': 'Taurus', 'moolatrikona': 'Taurus', 'own': ['Cancer'], 
+                'friend': ['Sun', 'Mercury'], 'enemy': []},
+        'Mercury': {'exalted': 'Virgo', 'moolatrikona': 'Virgo', 'own': ['Gemini', 'Virgo'], 
+                   'friend': ['Sun', 'Venus'], 'enemy': ['Moon']},
+        'Venus': {'exalted': 'Pisces', 'moolatrikona': 'Libra', 'own': ['Taurus', 'Libra'], 
+                 'friend': ['Mercury', 'Saturn'], 'enemy': ['Sun', 'Moon']},
+        'Mars': {'exalted': 'Capricorn', 'moolatrikona': 'Aries', 'own': ['Aries', 'Scorpio'], 
+                'friend': ['Sun', 'Moon', 'Jupiter'], 'enemy': ['Mercury']},
+        'Jupiter': {'exalted': 'Cancer', 'moolatrikona': 'Sagittarius', 'own': ['Sagittarius', 'Pisces'], 
+                   'friend': ['Sun', 'Moon', 'Mars'], 'enemy': ['Mercury', 'Venus']},
+        'Saturn': {'exalted': 'Libra', 'moolatrikona': 'Aquarius', 'own': ['Capricorn', 'Aquarius'], 
+                  'friend': ['Mercury', 'Venus'], 'enemy': ['Sun', 'Moon', 'Mars']},
+        'Rahu': {'exalted': 'Gemini', 'moolatrikona': None, 'own': [], 
+                'friend': ['Venus', 'Saturn'], 'enemy': ['Sun', 'Moon']},
+        'Ketu': {'exalted': 'Sagittarius', 'moolatrikona': None, 'own': [], 
+                'friend': ['Venus', 'Saturn'], 'enemy': ['Sun', 'Moon']}
     }
 
-    # Load ephemeris data
-    EPHEMERIS = load('de421.bsp')
-    EARTH = EPHEMERIS['earth']
-    SUN = EPHEMERIS['sun']
-    MOON = EPHEMERIS['moon']
-    MARS = EPHEMERIS['mars']
-    JUPITER = EPHEMERIS['jupiter barycenter']
-    SATURN = EPHEMERIS['saturn barycenter']
-    VENUS = EPHEMERIS['venus']
-    MERCURY = EPHEMERIS['mercury']
-    
-    def __init__(self, date: datetime, lat: float = 0.0, lon: float = 0.0):
-        """
-        Initialize calculator with date, time and location
+    def __init__(self, date: datetime, lat: float = 0.0, lon: float = 0.0, ayanamsa: str = 'Lahiri'):
+        # Set ephemeris path (update with correct path if needed)
+        swe.set_ephe_path(None)  # Uses internal ephemeris
         
-        Args:
-            date: Datetime object in UTC
-            lat: Latitude in degrees (North positive)
-            lon: Longitude in degrees (East positive)
-        """
+        # Store input parameters
         self.date = date
-        self.lat = float(lat)
-        self.lon = float(lon)
+        self.lat = lat
+        self.lon = lon
         
-        # Create location object
-        self.location = wgs84.latlon(self.lat, self.lon)
-        self.observer = self.EARTH + self.location
+        # Convert date to Julian day
+        self.jd = self._datetime_to_jd(date)
         
-        # Convert datetime to Time object
-        self.ts = load.timescale()
-        self.time = self.ts.from_datetime(date)
-        
-        # Calculate ayanamsa
-        self.ayanamsa = self._calculate_lahiri_ayanamsa()
+        # Set ayanamsa
+        self.ayanamsa = ayanamsa
+        swe.set_sid_mode(self.AYANAMSA_OPTIONS.get(ayanamsa, swe.SIDM_LAHIRI))
 
-    def _calculate_lahiri_ayanamsa(self) -> float:
-        """
-        Calculate Lahiri ayanamsa for the given date
-        
-        Returns:
-            float: Ayanamsa value in degrees
-        """
-        jd = self.time.tt - 2451545.0  # Days since J2000
-        t = jd / 36525  # Julian centuries since J2000
-        
-        # Lahiri ayanamsa formula
-        ayanamsa = 23.636953 + 0.017314 * t
-        
-        return ayanamsa
+    def calculate_panchang(self) -> Dict[str, Any]:
+        """Calculate Panchang (Tithi, Nakshatra, Yoga, Karana) details."""
+        # Get Sun and Moon positions
+        sun_pos = self.get_planet_position('Sun')['longitude']
+        moon_pos = self.get_planet_position('Moon')['longitude']
 
-    def _normalize_longitude(self, longitude: float) -> float:
-        """Normalize longitude to 0-360 range"""
-        longitude = longitude % 360
-        if longitude < 0:
-            longitude += 360
-        return longitude
-
-    @lru_cache(maxsize=128)
-    def get_planet_position(self, planet_name: str) -> Tuple[float, str]:
-        """
-        Calculate tropical position of a planet and convert to sidereal
+        # Calculate Tithi
+        moon_sun_diff = (moon_pos - sun_pos) % 360
+        tithi_num = int(moon_sun_diff / 12)
+        tithi_name = self.TITHIS[tithi_num % 15]
         
-        Args:
-            planet_name: Name of the planet (Sun, Moon, Mars, etc.)
+        # Calculate Karana
+        karana_num = int(moon_sun_diff / 6) % 60
+        karana_name = self.KARANAS[karana_num % 10]
+        
+        # Calculate Yoga
+        yoga_longitude = (sun_pos + moon_pos) % 360
+        yoga_num = int(yoga_longitude * 27 / 360)
+        yoga_name = self.YOGAS[yoga_num]
+
+        # Get weekday
+        weekday = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 
+                  'Thursday', 'Friday', 'Saturday'][int(self.jd + 1.5) % 7]
+
+        return {
+            'tithi': tithi_name,
+            'karana': karana_name,
+            'yoga': yoga_name,
+            'weekday': weekday,
+            'moon_phase': 'Full Moon' if tithi_num == 14 else 'New Moon' if tithi_num == 29 else None
+        }
+
+    def calculate_upagrahas(self) -> Dict[str, Dict[str, Any]]:
+        """Calculate positions of Upagrahas (sub-planets)."""
+        sun_long = self.get_planet_position('Sun')['longitude']
+        upagrahas = {}
+        
+        for name, offset in UPAGRAHA_LONGITUDES.items():
+            longitude = (sun_long + offset) % 360
+            sign_num = int(longitude / 30)
+            sign_name = self.ZODIAC_SIGNS[sign_num]
+            degree = longitude % 30
+            nakshatra, pada = self.get_nakshatra(longitude)
             
-        Returns:
-            Tuple[float, str]: (longitude in degrees, zodiac sign name)
-        """
-        # Get planet object
-        planet = getattr(self, planet_name.upper())
-        
-        # Calculate planet position
-        planet_at_date = planet.at(self.time)
-        earth_at_date = self.EARTH.at(self.time)
-        
-        # Get ecliptic longitude
-        _, lat, lon = planet_at_date.observe(self.EARTH).ecliptic_latlon()
-        long_deg = float(lon.degrees)
-        
-        # Convert to sidereal by subtracting ayanamsa
-        long_deg = self._normalize_longitude(long_deg - self.ayanamsa)
-        
-        # Calculate zodiac sign
-        sign_num = int(long_deg / 30)
-        sign = self.ZODIAC_SIGNS[sign_num]
-        
-        return (long_deg, sign)
-
-    def get_house_cusps(self) -> List[float]:
-        """
-        Calculate house cusps using equal house system
-        
-        Returns:
-            List[float]: List of 12 house cusp longitudes
-        """
-        # Calculate ascendant (Lagna)
-        sun = self.SUN.at(self.time)
-        earth = self.EARTH.at(self.time)
-        
-        # Get local sidereal time
-        lst = earth.lst_hours_at(self.lon) * 15  # Convert hours to degrees
-        
-        # Convert to sidereal
-        ascendant = self._normalize_longitude(lst - self.ayanamsa)
-        
-        # In equal house system, houses are exactly 30° apart
-        cusps = [(ascendant + (i * 30)) % 360 for i in range(12)]
-        return cusps
-
-    def get_planet_dignity(self, planet_name: str) -> str:
-        """
-        Determine dignity state of a planet
-        
-        Args:
-            planet_name: Name of the planet
-            
-        Returns:
-            str: Dignity state (exalted, debilitated, neutral)
-        """
-        _, sign = self.get_planet_position(planet_name)
-        
-        if planet_name in self.EXALTATION and sign == self.EXALTATION[planet_name]:
-            return 'exalted'
-        elif planet_name in self.DEBILITATION and sign == self.DEBILITATION[planet_name]:
-            return 'debilitated'
-        return 'neutral'
-
-    def calculate_all_planets(self) -> Dict[str, Dict[str, str]]:
-        """
-        Calculate positions for all major planets
-        
-        Returns:
-            Dict with planet positions and dignities
-        """
-        planets = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn']
-        result = {}
-        
-        for planet in planets:
-            long_deg, sign = self.get_planet_position(planet)
-            dignity = self.get_planet_dignity(planet)
-            
-            result[planet] = {
-                'longitude': f"{long_deg:.2f}",
-                'sign': sign,
-                'dignity': dignity,
-                'degree': f"{long_deg % 30:.2f}"
+            upagrahas[name] = {
+                'longitude': longitude,
+                'sign': sign_name,
+                'degree': degree,
+                'nakshatra': nakshatra,
+                'pada': pada
             }
+        
+        return upagrahas
+
+    def calculate_vimshottari_dasha(self) -> List[Dict[str, Any]]:
+        """Calculate Vimshottari Dasha periods."""
+        moon_pos = self.get_planet_position('Moon')
+        nakshatra_name = moon_pos['nakshatra']
+        pada = moon_pos['pada']
+        
+        # Dasha order and their years
+        dasha_order = ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 
+                      'Rahu', 'Jupiter', 'Saturn', 'Mercury']
+        dasha_years = [7, 20, 6, 10, 7, 18, 16, 19, 17]
+        
+        # Find starting Mahadasha based on Moon's Nakshatra
+        nakshatra_lord_index = self.NAKSHATRAS.index((nakshatra_name, self.NAKSHATRAS[0][1]))
+        start_dasha_index = nakshatra_lord_index % 9
+        
+        dashas = []
+        current_date = self.date
+        
+        for i in range(9):
+            dasha_index = (start_dasha_index + i) % 9
+            planet = dasha_order[dasha_index]
+            years = dasha_years[dasha_index]
             
-        return result
+            dashas.append({
+                'planet': planet,
+                'duration': years,
+                'start_date': current_date.strftime('%Y-%m-%d')
+            })
+            
+            # Add years to get next dasha start date
+            current_date = current_date.replace(year=current_date.year + years)
+        
+        return dashas
+
+    def get_planet_position(self, planet_name: str) -> Dict[str, Any]:
+        """Get detailed planetary position including retrograde status."""
+        if planet_name == 'Ketu':
+            rahu_result = self.get_planet_position('Rahu')
+            longitude = (rahu_result['longitude'] + 180) % 360
+            is_retrograde = rahu_result.get('is_retrograde', False)
+        else:
+            planet_id = PLANET_IDS[planet_name]
+            flags = swe.FLG_SIDEREAL | swe.FLG_SPEED
+            result = swe.calc_ut(self.jd, planet_id, flags)
+            longitude = result[0]
+            speed = result[3]  # Daily motion in longitude
+            is_retrograde = speed < 0
+            
+        sign_num = int(longitude / 30)
+        sign_name = self.ZODIAC_SIGNS[sign_num]
+        degrees_in_sign = longitude % 30
+        
+        nakshatra_name, pada = self.get_nakshatra(longitude)
+        dignity = self._get_dignity(planet_name, sign_name)
+            
+        return {
+            'longitude': longitude,
+            'sign': sign_name,
+            'degree': degrees_in_sign,
+            'nakshatra': nakshatra_name,
+            'pada': pada,
+            'dignity': dignity,
+            'is_retrograde': is_retrograde
+        }
+
+    def get_nakshatra(self, longitude: float) -> Tuple[str, int]:
+        """Get nakshatra and pada for a given longitude."""
+        nakshatra_span = 360 / 27  # Each nakshatra spans 13°20'
+        pada_span = nakshatra_span / 4  # Each pada spans 3°20'
+        
+        nakshatra_idx = int(longitude / nakshatra_span)
+        nakshatra_name = self.NAKSHATRAS[nakshatra_idx][0]
+        
+        # Calculate pada (1-4)
+        pada_progress = (longitude % nakshatra_span) / pada_span
+        pada = int(pada_progress) + 1
+        
+        return nakshatra_name, pada
+
+    def _get_dignity(self, planet_name: str, sign_name: str) -> str:
+        """Determine the dignity of a planet in a particular sign."""
+        if planet_name not in self.DIGNITIES:
+            return 'Unknown'
+            
+        dignity_data = self.DIGNITIES[planet_name]
+        
+        if sign_name == dignity_data.get('exalted'):
+            return 'Exalted'
+        elif sign_name == dignity_data.get('moolatrikona'):
+            return 'Moolatrikona'
+        elif sign_name in dignity_data.get('own', []):
+            return 'Own sign'
+        
+        sign_rulers = {
+            'Aries': 'Mars', 'Taurus': 'Venus', 'Gemini': 'Mercury', 'Cancer': 'Moon',
+            'Leo': 'Sun', 'Virgo': 'Mercury', 'Libra': 'Venus', 'Scorpio': 'Mars',
+            'Sagittarius': 'Jupiter', 'Capricorn': 'Saturn', 'Aquarius': 'Saturn', 'Pisces': 'Jupiter'
+        }
+        
+        ruler = sign_rulers.get(sign_name)
+        if ruler in dignity_data.get('friend', []):
+            return "Friend's sign"
+        elif ruler in dignity_data.get('enemy', []):
+            return "Enemy's sign"
+        
+        exalted_sign = dignity_data.get('exalted', '')
+        if exalted_sign:
+            exalted_idx = self.ZODIAC_SIGNS.index(exalted_sign)
+            debilitated_idx = (exalted_idx + 6) % 12
+            if sign_name == self.ZODIAC_SIGNS[debilitated_idx]:
+                return 'Debilitated'
+            
+        return 'Neutral'
+
+    def _calculate_ayanamsa(self) -> float:
+        """Calculate ayanamsa value at the given date."""
+        return swe.get_ayanamsa(self.jd)
+
+    def _datetime_to_jd(self, dt: datetime) -> float:
+        """Convert datetime to Julian day."""
+        dt_utc = dt.replace(tzinfo=None)
+        jd = swe.julday(dt_utc.year, dt_utc.month, dt_utc.day, 
+                        dt_utc.hour + dt_utc.minute/60.0 + dt_utc.second/3600.0)
+        return jd
+
+    def convert_to_ghati_pal(self, hours: float) -> Tuple[float, float, float]:
+        """Convert hours to traditional Indian units."""
+        total_ghatis = hours * 2.5  # 1 day = 60 ghatis, so 1 hour = 2.5 ghatis
+        ghatis = int(total_ghatis)
+        
+        remaining_vighatis = (total_ghatis - ghatis) * 60
+        vighatis = int(remaining_vighatis)
+        
+        pals = int((remaining_vighatis - vighatis) * 60)
+        
+        return ghatis, vighatis, pals
+
+    def get_house_cusps(self, system: str = 'W') -> List[float]:
+        """
+        Calculate house cusps according to the specified house system.
+        
+        system: House system
+            'P' - Placidus
+            'K' - Koch
+            'O' - Porphyrius
+            'R' - Regiomontanus
+            'C' - Campanus
+            'E' - Equal
+            'W' - Whole sign
+            'B' - Alcabitus
+            'M' - Morinus
+        """
+        # For whole sign houses, the cusps are at the beginning of each sign
+        if system == 'W':
+            # First get the ascendant
+            ascendant = swe.houses(self.jd, self.lat, self.lon, b'P')[1][0]
+            # Find the sign number (0-11) of the ascendant
+            asc_sign = int(ascendant / 30)
+            # Create cusps starting from the ascendant sign
+            cusps = [(asc_sign + i) % 12 * 30 for i in range(12)]
+            return cusps
+        
+        # For other house systems, use Swiss Ephemeris
+        hsys = bytes(system, 'utf-8')
+        try:
+            cusps = swe.houses(self.jd, self.lat, self.lon, hsys)[0]
+            return list(cusps)
+        except:
+            # Fallback to Placidus if the requested system fails
+            cusps = swe.houses(self.jd, self.lat, self.lon, b'P')[0]
+            return list(cusps)
+
+    def calculate_all_planets(self) -> Dict[str, Dict[str, Any]]:
+        """Calculate positions for all planets."""
+        all_planets = {}
+        for planet in PLANET_IDS.keys():
+            all_planets[planet] = self.get_planet_position(planet)
+        return all_planets

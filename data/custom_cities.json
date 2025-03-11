@@ -1,0 +1,32 @@
+{
+    "cities": [
+        {
+            "name": "loznica",
+            "display": "Loznica, Serbia",
+            "lat": 44.5333,
+            "lon": 19.2167,
+            "timezone": "Europe/Belgrade"
+        },
+        {
+            "name": "belgrade",
+            "display": "Belgrade, Serbia",
+            "lat": 44.7866,
+            "lon": 20.4489,
+            "timezone": "Europe/Belgrade"
+        },
+        {
+            "name": "london",
+            "display": "London, United Kingdom",
+            "lat": 51.5074,
+            "lon": -0.1278,
+            "timezone": "Europe/London"
+        },
+        {
+            "name": "new york",
+            "display": "New York, United States",
+            "lat": 40.7128,
+            "lon": -74.0060,
+            "timezone": "America/New_York"
+        }
+    ]
+}

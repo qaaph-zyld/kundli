@@ -1,3 +1,85 @@
 {
-    "kundlis": []
+    "kundlis": [
+        {
+            "name": "Nikola",
+            "date": "1990-10-09",
+            "time": "09:10",
+            "latitude": 44.5333,
+            "longitude": 19.2167,
+            "timezone": "Europe/Belgrade",
+            "results": {
+                "planets": {
+                    "Sun": {
+                        "longitude": "172.05",
+                        "sign": "Virgo",
+                        "dignity": "neutral",
+                        "degree": "22.05"
+                    },
+                    "Moon": {
+                        "longitude": "58.33",
+                        "sign": "Taurus",
+                        "dignity": "exalted",
+                        "degree": "28.33"
+                    },
+                    "Mars": {
+                        "longitude": "49.90",
+                        "sign": "Taurus",
+                        "dignity": "neutral",
+                        "degree": "19.90"
+                    },
+                    "Mercury": {
+                        "longitude": "162.58",
+                        "sign": "Virgo",
+                        "dignity": "exalted",
+                        "degree": "12.58"
+                    },
+                    "Jupiter": {
+                        "longitude": "105.84",
+                        "sign": "Cancer",
+                        "dignity": "exalted",
+                        "degree": "15.84"
+                    },
+                    "Venus": {
+                        "longitude": "166.04",
+                        "sign": "Virgo",
+                        "dignity": "debilitated",
+                        "degree": "16.04"
+                    },
+                    "Saturn": {
+                        "longitude": "265.19",
+                        "sign": "Sagittarius",
+                        "dignity": "neutral",
+                        "degree": "25.19"
+                    },
+                    "Rahu": {
+                        "longitude": "279.83",
+                        "sign": "Capricorn",
+                        "dignity": "neutral",
+                        "degree": "9.83"
+                    },
+                    "Ketu": {
+                        "longitude": "99.83",
+                        "sign": "Cancer",
+                        "dignity": "neutral",
+                        "degree": "9.83"
+                    }
+                },
+                "houses": [
+                    232.66170932810735,
+                    262.66170932810735,
+                    292.66170932810735,
+                    322.66170932810735,
+                    352.66170932810735,
+                    22.66170932810735,
+                    52.66170932810735,
+                    82.66170932810735,
+                    112.66170932810735,
+                    142.66170932810735,
+                    172.66170932810735,
+                    202.66170932810735
+                ],
+                "ayanamsa": 23.728165924403015
+            }
+        }
+    ]
 }

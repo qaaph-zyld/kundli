@@ -1,227 +1,225 @@
-from flask import Flask, render_template, request, jsonify
-from datetime import datetime, timedelta
-import pytz
-import math
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from datetime import datetime
 import json
-import os
+import pytz
+from vedic_calculator.core import VedicCalculator
 
 app = Flask(__name__)
+CORS(app)
 
 # Load cities database
-with open(os.path.join(os.path.dirname(__file__), 'data', 'cities.json'), 'r', encoding='utf-8') as f:
-    CITIES_DB = json.load(f)
+def load_cities():
+    try:
+        with open('data/custom_cities.json', 'r', encoding='utf-8') as f:
+            print("Loading cities database from:", f.name)
+            cities = json.load(f)
+            print(f"Loaded {len(cities)} cities")
+            return cities
+    except Exception as e:
+        print(f"Error loading cities: {e}")
+        return []
 
-# Path to stored kundlis
-KUNDLIS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'stored_kundlis.json')
+cities_db = load_cities()
 
-def load_stored_kundlis():
-    if os.path.exists(KUNDLIS_FILE):
-        with open(KUNDLIS_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {"kundlis": []}
-
-def save_kundli(kundli_data):
-    stored = load_stored_kundlis()
-    
-    # Check if kundli with same name exists
-    for idx, k in enumerate(stored['kundlis']):
-        if k['name'] == kundli_data['name']:
-            stored['kundlis'][idx] = kundli_data
-            break
-    else:
-        stored['kundlis'].append(kundli_data)
-    
-    with open(KUNDLIS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(stored, f, indent=4)
-
-def search_cities(query):
-    """Search cities in our database"""
-    query = query.lower()
-    matches = []
-    for city in CITIES_DB['cities']:
-        if query in city['name'].lower():
-            matches.append({
-                'name': city['display'],
-                'lat': city['lat'],
-                'lon': city['lon'],
-                'timezone': city['timezone']
+@app.route('/calculate_chart', methods=['POST'])
+def calculate_chart():
+    try:
+        data = request.json
+        
+        # Get date and time components
+        date_str = data.get('date')
+        time_str = data.get('time')
+        timezone = data.get('timezone', 'UTC')
+        
+        # Combine date and time
+        datetime_str = f"{date_str} {time_str}"
+        
+        # Parse the datetime string
+        try:
+            # Try parsing with seconds
+            local_time = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            try:
+                # Try parsing without seconds
+                local_time = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
+            except ValueError:
+                return jsonify({'error': 'Invalid date/time format'}), 400
+        
+        # Set the timezone
+        local_tz = pytz.timezone(timezone)
+        local_time = local_tz.localize(local_time)
+        
+        # Convert to UTC
+        utc_time = local_time.astimezone(pytz.UTC)
+        
+        # Get coordinates
+        try:
+            latitude = float(data.get('latitude', 0))
+            longitude = float(data.get('longitude', 0))
+        except ValueError:
+            return jsonify({'error': 'Invalid coordinate format'}), 400
+        
+        # Get ayanamsa and house system if provided
+        ayanamsa = data.get('ayanamsa', 'Lahiri')
+        house_system = data.get('houseSystem', 'W')  # Default to Whole Sign houses
+        
+        # Calculate chart data
+        calculator = VedicCalculator(utc_time, latitude, longitude, ayanamsa)
+        
+        # Get house cusps
+        house_cusps = calculator.get_house_cusps(house_system)
+        ascendant_deg = house_cusps[0]
+        
+        # Calculate all planet positions
+        planet_positions = {}
+        for planet in ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu']:
+            planet_positions[planet] = calculator.get_planet_position(planet)
+        
+        # Calculate Panchang details
+        panchang = calculator.calculate_panchang()
+        
+        # Calculate Upagrahas
+        upagrahas = calculator.calculate_upagrahas()
+        
+        # Calculate Vimshottari Dasha
+        dashas = calculator.calculate_vimshottari_dasha()
+        
+        # Calculate traditional time units
+        local_hour = local_time.hour + local_time.minute/60.0 + local_time.second/3600.0
+        ghati, vighati, pal = calculator.convert_to_ghati_pal(local_hour)
+        
+        # Format response
+        chart_data = {
+            'ascendant': {
+                'longitude': float(ascendant_deg),
+                'sign': calculator.ZODIAC_SIGNS[int(ascendant_deg / 30)],
+                'degree': float(ascendant_deg % 30),
+                'nakshatra': calculator.get_nakshatra(ascendant_deg)[0],
+                'pada': calculator.get_nakshatra(ascendant_deg)[1]
+            },
+            'planets': [],
+            'houses': [],
+            'panchang': panchang,
+            'upagrahas': upagrahas,
+            'dashas': dashas,
+            'timeInfo': {
+                'local': local_time.strftime('%Y-%m-%d %H:%M:%S %Z'),
+                'utc': utc_time.strftime('%Y-%m-%d %H:%M:%S %Z'),
+                'ghati': ghati,
+                'vighati': vighati,
+                'pal': pal,
+                'ayanamsa': calculator._calculate_ayanamsa()
+            }
+        }
+        
+        # Add planet data
+        for planet_name, planet_data in planet_positions.items():
+            chart_data['planets'].append({
+                'name': planet_name,
+                'sign': planet_data['sign'],
+                'degree': planet_data['degree'],
+                'longitude': planet_data['longitude'],
+                'dignity': planet_data['dignity'],
+                'nakshatra': planet_data['nakshatra'],
+                'pada': planet_data['pada'],
+                'isRetrograde': planet_data.get('is_retrograde', False)
             })
-    return matches[:10]  # Limit to 10 results for better performance
-
-class VedicCalculator:
-    def __init__(self, date, lat=0, lon=0):
-        self.date = date
-        self.lat = float(lat) if lat else 0
-        self.lon = float(lon) if lon else 0
         
-        # J2000 epoch
-        self.j2000 = datetime(2000, 1, 1, 12, 0, tzinfo=pytz.UTC)
+        # Add house data
+        for i, cusp in enumerate(house_cusps, 1):
+            sign_num = int(cusp / 30)
+            chart_data['houses'].append({
+                'number': i,
+                'longitude': float(cusp),
+                'sign': calculator.ZODIAC_SIGNS[sign_num],
+                'degree': float(cusp % 30)
+            })
         
-    def get_julian_date(self):
-        """Convert datetime to Julian Date"""
-        time_diff = self.date - self.j2000
-        return 2451545.0 + time_diff.days + time_diff.seconds / 86400.0
-    
-    def calculate_ayanamsa(self):
-        """Calculate Lahiri ayanamsa"""
-        jd = self.get_julian_date()
-        t = (jd - 2451545.0) / 36525  # Julian centuries since J2000
-        return 23.636953 + 0.017314 * t  # Lahiri ayanamsa formula
-
-    def get_sun_position(self):
-        """Simplified Sun position calculation"""
-        jd = self.get_julian_date()
-        n = jd - 2451545.0
+        return jsonify(chart_data)
         
-        # Mean elements
-        L = 280.460 + 0.9856474 * n  # Mean longitude
-        g = 357.528 + 0.9856003 * n  # Mean anomaly
-        
-        # Convert to radians
-        g_rad = math.radians(g)
-        
-        # Ecliptic longitude
-        lambda_sun = L + 1.915 * math.sin(g_rad) + 0.020 * math.sin(2 * g_rad)
-        
-        # Convert to sidereal (subtract ayanamsa)
-        lambda_sun -= self.calculate_ayanamsa()
-        
-        # Normalize to 0-360 range
-        lambda_sun = lambda_sun % 360
-        if lambda_sun < 0:
-            lambda_sun += 360
-            
-        return lambda_sun
-    
-    def get_moon_position(self):
-        """Simplified Moon position calculation"""
-        jd = self.get_julian_date()
-        n = jd - 2451545.0
-        
-        # Mean elements
-        L = 218.316 + 13.176396 * n  # Mean longitude
-        M = 134.963 + 13.064993 * n  # Mean anomaly
-        F = 93.272 + 13.229350 * n   # Argument of latitude
-        
-        # Convert to radians
-        L_rad = math.radians(L)
-        M_rad = math.radians(M)
-        F_rad = math.radians(F)
-        
-        # Simplified perturbations
-        lambda_moon = L + 6.289 * math.sin(M_rad)
-        
-        # Convert to sidereal
-        lambda_moon -= self.calculate_ayanamsa()
-        
-        # Normalize to 0-360 range
-        lambda_moon = lambda_moon % 360
-        if lambda_moon < 0:
-            lambda_moon += 360
-            
-        return lambda_moon
-
-def get_zodiac_sign(degrees):
-    zodiac_signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-                    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
-    sign_num = int(degrees / 30)
-    return zodiac_signs[sign_num]
+    except Exception as e:
+        print(f"Error calculating chart: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return "Welcome to the Jyotish API"
 
 @app.route('/search_place', methods=['GET'])
 def search_place():
-    query = request.args.get('q', '')
+    query = request.args.get('q', '').lower()
+    print(f"Searching for: {query}")
     if len(query) < 2:
         return jsonify([])
-    locations = search_cities(query)
-    return jsonify(locations)
-
-@app.route('/get_saved_kundlis', methods=['GET'])
-def get_saved_kundlis():
-    stored = load_stored_kundlis()
-    return jsonify(stored)
-
-@app.route('/calculate', methods=['POST'])
-def calculate_kundli():
+    
+    matches = []
     try:
-        data = request.json
-        birth_date = datetime.strptime(data['date'], '%Y-%m-%d')
-        birth_time = datetime.strptime(data['time'], '%H:%M').time()
-        birth_datetime = datetime.combine(birth_date, birth_time)
-        
-        # Convert to UTC
-        local_tz = pytz.timezone(data.get('timezone', 'UTC'))
-        local_dt = local_tz.localize(birth_datetime)
-        utc_dt = local_dt.astimezone(pytz.UTC)
-        
-        # Create calculator
-        calc = VedicCalculator(
-            utc_dt,
-            data.get('latitude', 0),
-            data.get('longitude', 0)
-        )
-        
-        # Calculate positions
-        sun_long = calc.get_sun_position()
-        moon_long = calc.get_moon_position()
-        
-        # Basic planetary positions (simplified)
-        result = {
-            'Sun': {
-                'sign': get_zodiac_sign(sun_long),
-                'degree': round(sun_long % 30, 2)
-            },
-            'Moon': {
-                'sign': get_zodiac_sign(moon_long),
-                'degree': round(moon_long % 30, 2)
-            }
-        }
-        
-        # Add placeholder positions for other planets
-        other_planets = ['Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu']
-        base_degrees = {
-            'Mars': 45,
-            'Mercury': 90,
-            'Jupiter': 135,
-            'Venus': 180,
-            'Saturn': 225,
-            'Rahu': 270,
-            'Ketu': 90
-        }
-        
-        for planet in other_planets:
-            base_deg = (base_degrees[planet] + sun_long) % 360
-            result[planet] = {
-                'sign': get_zodiac_sign(base_deg),
-                'degree': round(base_deg % 30, 2)
-            }
-        
-        # Save the kundli data
-        kundli_data = {
-            'name': data['name'],
-            'date': data['date'],
-            'time': data['time'],
-            'place': data['place'],
-            'latitude': data.get('latitude'),
-            'longitude': data.get('longitude'),
-            'timezone': data.get('timezone', 'UTC'),
-            'planets': result
-        }
-        save_kundli(kundli_data)
-            
-        return jsonify({
-            'success': True,
-            'planets': result
-        })
-        
+        for city in cities_db:
+            if query in city['name'].lower():
+                matches.append({
+                    'name': city['display'],
+                    'lat': city['lat'],
+                    'lon': city['lon'],
+                    'timezone': city['timezone']
+                })
+        print(f"Found {len(matches)} matches")
+        return jsonify(matches)
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 400
+        print(f"Error during search: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/validate_coordinates', methods=['POST'])
+def validate_coordinates():
+    data = request.get_json()
+    
+    try:
+        latitude = float(data.get('latitude', 0))
+        longitude = float(data.get('longitude', 0))
+        
+        # Validate coordinate ranges
+        if not (-90 <= latitude <= 90):
+            return jsonify({'valid': False, 'error': 'Latitude must be between -90° and 90°'}), 400
+        
+        if not (-180 <= longitude <= 180):
+            return jsonify({'valid': False, 'error': 'Longitude must be between -180° and 180°'}), 400
+        
+        # Try to get timezone for these coordinates
+        from timezonefinder import TimezoneFinder
+        tf = TimezoneFinder()
+        timezone = tf.timezone_at(lat=latitude, lng=longitude)
+        
+        if not timezone:
+            return jsonify({'valid': True, 'warning': 'Could not determine timezone for these coordinates'}), 200
+        
+        return jsonify({'valid': True, 'timezone': timezone}), 200
+        
+    except ValueError:
+        return jsonify({'valid': False, 'error': 'Invalid coordinate format'}), 400
+    except Exception as e:
+        return jsonify({'valid': False, 'error': str(e)}), 500
+
+@app.route('/ayanamsa_options', methods=['GET'])
+def get_ayanamsa_options():
+    # Return available ayanamsa options
+    options = list(VedicCalculator.AYANAMSA_OPTIONS.keys())
+    return jsonify(options)
+
+@app.route('/house_system_options', methods=['GET'])
+def get_house_system_options():
+    # Return available house system options
+    options = {
+        'P': 'Placidus',
+        'K': 'Koch',
+        'O': 'Porphyrius',
+        'R': 'Regiomontanus',
+        'C': 'Campanus',
+        'E': 'Equal',
+        'W': 'Whole sign',
+        'B': 'Alcabitus',
+        'M': 'Morinus'
+    }
+    return jsonify(options)
 
 if __name__ == '__main__':
     app.run(debug=True)

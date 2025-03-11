@@ -67,7 +67,7 @@ class TestVedicCalculator(unittest.TestCase):
         result = self.calc.calculate_all_planets()
         
         # Check all major planets are included
-        expected_planets = {'Sun', 'Moon', 'Mars', 'Jupiter', 'Venus', 'Saturn'}
+        expected_planets = {'Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'}
         self.assertEqual(set(result.keys()), expected_planets)
         
         # Check structure of each planet's data

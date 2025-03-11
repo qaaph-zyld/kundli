@@ -26,11 +26,14 @@ cities_db = load_cities()
 def calculate_chart():
     try:
         data = request.json
+        print(f"Received data: {data}")
         
         # Get date and time components
         date_str = data.get('date')
         time_str = data.get('time')
         timezone = data.get('timezone', 'UTC')
+        
+        print(f"Date: {date_str}, Time: {time_str}, Timezone: {timezone}")
         
         # Combine date and time
         datetime_str = f"{date_str} {time_str}"
@@ -46,21 +49,30 @@ def calculate_chart():
             except ValueError:
                 return jsonify({'error': 'Invalid date/time format'}), 400
         
+        print(f"Parsed datetime: {local_time}")
+        
         # Set the timezone
         local_tz = pytz.timezone(timezone)
         local_time = local_tz.localize(local_time)
+        
+        print(f"Localized datetime: {local_time}")
         
         # Get coordinates
         latitude = float(data.get('latitude', 0))
         longitude = float(data.get('longitude', 0))
         
+        print(f"Coordinates: Lat {latitude}, Lon {longitude}")
+        
         # Get ayanamsa and house system
         ayanamsa = data.get('ayanamsa', 'Lahiri')
         house_system = data.get('houseSystem', 'W')
         
+        print(f"Ayanamsa: {ayanamsa}, House System: {house_system}")
+        
         # Initialize calculator
         try:
             calculator = VedicCalculator(local_time, latitude, longitude, ayanamsa)
+            print("VedicCalculator initialized successfully")
             
             # Calculate houses
             try:
@@ -75,7 +87,8 @@ def calculate_chart():
             # Calculate planets
             try:
                 planets = {}
-                for planet in ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu']:
+                for planet in VedicCalculator.PLANET_IDS.keys():
+                    print(f"Calculating position for {planet}")
                     planets[planet] = calculator.get_planet_position(planet)
                 print("Planets calculated successfully")
             except Exception as e:

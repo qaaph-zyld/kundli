@@ -3,6 +3,7 @@ from typing import List, Dict, Tuple, Any, Optional
 import math
 import swisseph as swe
 import pytz
+from datetime import timedelta
 
 # Planet IDs in Swiss Ephemeris
 PLANET_IDS = {
@@ -30,8 +31,13 @@ UPAGRAHA_LONGITUDES = {
 }
 
 class VedicCalculator:
-    ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 
-                    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
+    """Core class for Vedic astrology calculations."""
+    
+    # Constants
+    ZODIAC_SIGNS = [
+        'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+        'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+    ]
     
     NAKSHATRAS = [
         ('Ashwini', 'Ashwini Kumaras'),
@@ -63,6 +69,38 @@ class VedicCalculator:
         ('Revati', 'Pushan')
     ]
 
+    NAKSHATRA_LORDS = [
+        'Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter',
+        'Saturn', 'Mercury', 'Ketu', 'Venus', 'Sun', 'Moon', 'Mars',
+        'Rahu', 'Jupiter', 'Saturn', 'Mercury', 'Ketu', 'Venus', 'Sun',
+        'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury'
+    ]
+    
+    PLANET_IDS = {
+        'Sun': swe.SUN,
+        'Moon': swe.MOON,
+        'Mars': swe.MARS,
+        'Mercury': swe.MERCURY,
+        'Jupiter': swe.JUPITER,
+        'Venus': swe.VENUS,
+        'Saturn': swe.SATURN,
+        'Rahu': swe.MEAN_NODE,  # North Node (Rahu)
+        'Ketu': None  # South Node (Ketu) - calculated from Rahu
+    }
+    
+    # Vimshottari Dasha periods in years
+    DASHA_PERIODS = {
+        'Ketu': 7,
+        'Venus': 20,
+        'Sun': 6,
+        'Moon': 10,
+        'Mars': 7,
+        'Rahu': 18,
+        'Jupiter': 16,
+        'Saturn': 19,
+        'Mercury': 17
+    }
+    
     # Tithi names
     TITHIS = [
         'Pratipada', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami',
@@ -188,39 +226,84 @@ class VedicCalculator:
         return upagrahas
 
     def calculate_vimshottari_dasha(self) -> List[Dict[str, Any]]:
-        """Calculate Vimshottari Dasha periods."""
-        moon_pos = self.get_planet_position('Moon')
-        nakshatra_name = moon_pos['nakshatra']
-        pada = moon_pos['pada']
-        
-        # Dasha order and their years
-        dasha_order = ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 
-                      'Rahu', 'Jupiter', 'Saturn', 'Mercury']
-        dasha_years = [7, 20, 6, 10, 7, 18, 16, 19, 17]
-        
-        # Find starting Mahadasha based on Moon's Nakshatra
-        nakshatra_names = [nak[0] for nak in self.NAKSHATRAS]
-        nakshatra_index = nakshatra_names.index(nakshatra_name)
-        start_dasha_index = nakshatra_index % 9
-        
-        dashas = []
-        current_date = self.date
-        
-        for i in range(9):
-            dasha_index = (start_dasha_index + i) % 9
-            planet = dasha_order[dasha_index]
-            years = dasha_years[dasha_index]
+        """Calculate Vimshottari Dasha periods based on Moon's Nakshatra."""
+        try:
+            # Get Moon position
+            moon_pos = self.get_planet_position('Moon')
             
-            dashas.append({
-                'planet': planet,
-                'duration': years,
-                'start_date': current_date.strftime('%Y-%m-%d')
-            })
+            # Get nakshatra details
+            nakshatra_name = moon_pos['nakshatra']
             
-            # Add years to get next dasha start date
-            current_date = current_date.replace(year=current_date.year + years)
+            # Find nakshatra index
+            if isinstance(self.NAKSHATRAS[0], tuple):
+                nakshatra_names = [nak[0] for nak in self.NAKSHATRAS]
+                nakshatra_index = nakshatra_names.index(nakshatra_name)
+            else:
+                nakshatra_index = self.NAKSHATRAS.index(nakshatra_name)
+            
+            # Find the lord of the nakshatra
+            nakshatra_lord = self.NAKSHATRA_LORDS[nakshatra_index]
+            
+            # Calculate progression of dashas
+            dasha_sequence = self._get_dasha_sequence(nakshatra_lord)
+            
+            # Calculate start time of mahadasha
+            birth_time = self.date
+            
+            # Calculate elapsed portion of nakshatra
+            nakshatra_start_deg = nakshatra_index * (360 / 27)
+            nakshatra_end_deg = (nakshatra_index + 1) * (360 / 27)
+            moon_longitude = moon_pos['longitude']
+            
+            # Calculate elapsed portion as a percentage
+            elapsed_portion = (moon_longitude - nakshatra_start_deg) / (nakshatra_end_deg - nakshatra_start_deg)
+            
+            # Calculate remaining portion of the first dasha
+            first_lord = dasha_sequence[0]
+            first_period_years = self.DASHA_PERIODS[first_lord]
+            remaining_years = first_period_years * (1 - elapsed_portion)
+            
+            # Generate dasha periods
+            dasha_periods = []
+            current_time = birth_time
+            
+            for lord in dasha_sequence:
+                period_years = self.DASHA_PERIODS[lord]
+                
+                if lord == first_lord:
+                    # First dasha has already started
+                    period_years = remaining_years
+                
+                end_time = current_time + timedelta(days=period_years * 365.25)
+                
+                dasha_periods.append({
+                    'planet': lord,
+                    'start_date': current_time.strftime('%Y-%m-%d'),
+                    'end_date': end_time.strftime('%Y-%m-%d'),
+                    'duration_years': period_years
+                })
+                
+                current_time = end_time
+            
+            return dasha_periods
+        except Exception as e:
+            print(f"Error in calculate_vimshottari_dasha: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    def _get_dasha_sequence(self, start_lord: str) -> List[str]:
+        """Get the sequence of dashas starting from a specific lord."""
+        # Order of lords in Vimshottari Dasha
+        lord_order = ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury']
         
-        return dashas
+        # Find the starting index
+        start_index = lord_order.index(start_lord)
+        
+        # Create the sequence starting from the given lord
+        sequence = lord_order[start_index:] + lord_order[:start_index]
+        
+        return sequence
 
     def get_planet_position(self, planet_name: str) -> Dict[str, Any]:
         """Get detailed planetary position including retrograde status."""
@@ -229,13 +312,23 @@ class VedicCalculator:
             longitude = (rahu_result['longitude'] + 180) % 360
             is_retrograde = rahu_result.get('is_retrograde', False)
         else:
-            planet_id = PLANET_IDS[planet_name]
+            planet_id = self.PLANET_IDS[planet_name]
             flags = swe.FLG_SIDEREAL | swe.FLG_SPEED
             result = swe.calc_ut(self.jd, planet_id, flags)
-            longitude = result[0]
-            speed = result[3]  # Daily motion in longitude
-            is_retrograde = speed < 0
             
+            # Check if result has enough elements before accessing
+            longitude = result[0] if len(result) > 0 else 0
+            
+            # Check if speed is available in the result
+            is_retrograde = False
+            if len(result) > 3:
+                speed = result[3]  # Daily motion in longitude
+                is_retrograde = speed < 0
+            
+        # Ensure longitude is a float
+        if isinstance(longitude, tuple):
+            longitude = longitude[0] if len(longitude) > 0 else 0
+        
         sign_num = int(longitude / 30)
         sign_name = self.ZODIAC_SIGNS[sign_num]
         degrees_in_sign = longitude % 30
@@ -255,15 +348,21 @@ class VedicCalculator:
 
     def get_nakshatra(self, longitude: float) -> Tuple[str, int]:
         """Get nakshatra and pada for a given longitude."""
-        nakshatra_span = 360 / 27  # Each nakshatra spans 13°20'
-        pada_span = nakshatra_span / 4  # Each pada spans 3°20'
+        # Each nakshatra is 13°20' (or 13.33333... degrees)
+        nakshatra_span = 360 / 27
         
-        nakshatra_idx = int(longitude / nakshatra_span)
-        nakshatra_name = self.NAKSHATRAS[nakshatra_idx][0]
+        # Calculate nakshatra index (0-26)
+        nakshatra_index = int(longitude / nakshatra_span)
+        
+        # Get nakshatra name
+        if isinstance(self.NAKSHATRAS[0], tuple):
+            nakshatra_name = self.NAKSHATRAS[nakshatra_index][0]
+        else:
+            nakshatra_name = self.NAKSHATRAS[nakshatra_index]
         
         # Calculate pada (1-4)
-        pada_progress = (longitude % nakshatra_span) / pada_span
-        pada = int(pada_progress) + 1
+        pada_span = nakshatra_span / 4
+        pada = int((longitude % nakshatra_span) / pada_span) + 1
         
         return nakshatra_name, pada
 
@@ -363,6 +462,46 @@ class VedicCalculator:
     def calculate_all_planets(self) -> Dict[str, Dict[str, Any]]:
         """Calculate positions for all planets."""
         all_planets = {}
-        for planet in PLANET_IDS.keys():
+        for planet in self.PLANET_IDS.keys():
             all_planets[planet] = self.get_planet_position(planet)
         return all_planets
+
+    def calculate_houses(self, house_system: str = 'W') -> Dict[int, Dict[str, Any]]:
+        """Calculate house cusps using specified house system."""
+        houses = {}
+        
+        if house_system == 'W':  # Whole Sign house system
+            # Get ascendant longitude
+            ascendant = self._calculate_ascendant()
+            asc_sign = int(ascendant / 30)
+            
+            # For Whole Sign houses, each house starts at 0° of a sign
+            for i in range(1, 13):
+                house_num = i
+                sign_num = (asc_sign + i - 1) % 12
+                sign_name = self.ZODIAC_SIGNS[sign_num]
+                
+                houses[house_num] = {
+                    'longitude': sign_num * 30,
+                    'sign': sign_name,
+                    'degree': 0
+                }
+        else:
+            # Default to Placidus or other house systems if implemented
+            # This is a placeholder for other house systems
+            for i in range(1, 13):
+                houses[i] = {
+                    'longitude': 0,
+                    'sign': 'Unknown',
+                    'degree': 0
+                }
+        
+        return houses
+    
+    def _calculate_ascendant(self) -> float:
+        """Calculate the ascendant (rising sign)."""
+        # Use Swiss Ephemeris to calculate ascendant
+        cusps, ascmc = swe.houses(self.jd, self.lat, self.lon, b'P')
+        ascendant = ascmc[0]  # Ascendant is the first element of ascmc
+        
+        return ascendant

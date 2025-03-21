@@ -1,0 +1,106 @@
+{
+  "name": "Nikola Reference Chart",
+  "date": "1990-10-09",
+  "time": "09:10:00",
+  "latitude": 44.5333,
+  "longitude": 19.2231,
+  "timezone": "UTC",
+  "planets": {
+    "Sun": {
+      "sign": "Virgo",
+      "degree": 22.0333,
+      "degree_precise": "22° 02' 0\"",
+      "longitude": 172.0333
+    },
+    "Moon": {
+      "sign": "Taurus",
+      "degree": 28.3167,
+      "degree_precise": "28° 19' 0\"",
+      "longitude": 58.3167
+    },
+    "Mercury": {
+      "sign": "Virgo",
+      "degree": 12.5667,
+      "degree_precise": "12° 34' 0\"",
+      "longitude": 162.5667
+    },
+    "Venus": {
+      "sign": "Virgo",
+      "degree": 16.0333,
+      "degree_precise": "16° 02' 0\"",
+      "longitude": 166.0333
+    },
+    "Mars": {
+      "sign": "Taurus",
+      "degree": 19.9,
+      "degree_precise": "19° 54' 0\"",
+      "longitude": 49.9
+    },
+    "Jupiter": {
+      "sign": "Cancer",
+      "degree": 15.8333,
+      "degree_precise": "15° 50' 0\"",
+      "longitude": 105.8333
+    },
+    "Saturn": {
+      "sign": "Sagittarius",
+      "degree": 25.1833,
+      "degree_precise": "25° 11' 0\"",
+      "longitude": 265.1833
+    },
+    "Node": {
+      "sign": "Capricorn",
+      "degree": 9.8167,
+      "degree_precise": "9° 49' 0\"",
+      "longitude": 279.8167,
+      "is_retrograde": true
+    }
+  },
+  "houses": {
+    "H1": {
+      "sign": "Libra",
+      "degree": 0,
+      "degree_precise": "0° 00' 0\"",
+      "longitude": 180
+    },
+    "H2": {
+      "sign": "Scorpio",
+      "degree": 0,
+      "degree_precise": "0° 00' 0\"",
+      "longitude": 210
+    },
+    "H3": {
+      "sign": "Sagittarius",
+      "degree": 0,
+      "degree_precise": "0° 00' 0\"",
+      "longitude": 240
+    },
+    "H4": {
+      "sign": "Capricorn",
+      "degree": 0,
+      "degree_precise": "0° 00' 0\"",
+      "longitude": 270
+    },
+    "H5": {
+      "sign": "Aquarius",
+      "degree": 0,
+      "degree_precise": "0° 00' 0\"",
+      "longitude": 300
+    },
+    "H6": {
+      "sign": "Pisces",
+      "degree": 0,
+      "degree_precise": "0° 00' 0\"",
+      "longitude": 330
+    }
+  },
+  "ascendant": {
+    "sign": "Libra",
+    "degree": 28.9167,
+    "degree_precise": "28° 55' 0\"",
+    "longitude": 208.9167,
+    "nakshatra": "Vishakha",
+    "nakshatra_lord": "Jupiter",
+    "pada": 3
+  }
+}

@@ -1,537 +1,590 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Vedic Kundli Calculator</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vedic Astrology Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Add D3.js library -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- Add custom chart script -->
+    <script src="{{ url_for('static', filename='js/kundli-chart.js') }}"></script>
     <style>
-        /* Ensure suggestions are visible */
-        .suggestions {
-            position: absolute;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            max-height: 200px;
-            overflow-y: auto;
-            width: 100%;
-            z-index: 1000;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
         }
-        
-        .suggestions div {
-            padding: 8px 12px;
-            cursor: pointer;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
         }
-        
-        .suggestions div:hover {
-            background-color: #f5f5f5;
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
-        
-        /* Form group positioning */
-        .form-group {
-            position: relative;
+        .card-header {
+            background-color: #6c757d;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px;
+        }
+        .form-control {
+            border-radius: 5px;
+            padding: 10px;
             margin-bottom: 15px;
         }
-        
-        /* Test profile button */
-        .test-profile-btn {
-            background-color: #f0f0f0;
-            border: 1px solid #ddd;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-bottom: 10px;
-            display: inline-block;
-        }
-        
-        .test-profile-btn:hover {
-            background-color: #e0e0e0;
-        }
-        
-        /* Results styling */
-        .results-container {
-            margin-top: 30px;
-            display: none;
-        }
-        
-        .chart-container {
-            border: 1px solid #ddd;
-            padding: 20px;
-            margin-bottom: 20px;
-            background-color: #f9f9f9;
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
             border-radius: 5px;
+            padding: 10px 20px;
         }
-        
+        .btn-primary:hover {
+            background-color: #0069d9;
+        }
+        .btn-outline-secondary {
+            border-radius: 5px;
+            padding: 10px 20px;
+        }
+        .tab-content {
+            padding: 20px;
+        }
+        .nav-tabs .nav-link {
+            color: #495057;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            color: #007bff;
+            font-weight: 600;
+        }
         .planet-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
         }
-        
         .planet-table th, .planet-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            padding: 8px 12px;
             text-align: left;
+            border-bottom: 1px solid #dee2e6;
         }
-        
         .planet-table th {
-            background-color: #f2f2f2;
+            background-color: #f8f9fa;
+            font-weight: 600;
         }
-        
-        .planet-table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
         .planet-table tr:hover {
-            background-color: #f0f0f0;
+            background-color: #f1f3f5;
         }
-        
-        .exalted {
-            color: #2e7d32;
-            font-weight: bold;
-        }
-        
-        .debilitated {
-            color: #c62828;
-            font-weight: bold;
-        }
-        
-        .own-sign {
-            color: #1565c0;
-            font-weight: bold;
-        }
-        
-        .friend-sign {
-            color: #6a1b9a;
-        }
-        
-        .enemy-sign {
-            color: #ef6c00;
-        }
-        
-        .dasha-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
-        .dasha-table th, .dasha-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        
-        .dasha-table th {
-            background-color: #f2f2f2;
-        }
-        
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            background-color: #f0f0f0;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            margin-right: 5px;
-            border-radius: 5px 5px 0 0;
-        }
-        
-        .tab.active {
-            background-color: #fff;
-            border-bottom: 1px solid #fff;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .tab-content {
-            display: none;
-            padding: 20px;
-            border: 1px solid #ddd;
-            margin-top: -1px;
-            border-radius: 0 5px 5px 5px;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .zodiac-sign {
+        .zodiac-symbol {
             font-size: 1.2em;
             margin-right: 5px;
+        }
+        .exalted { color: #1a9850; }
+        .own { color: #66bd63; }
+        .friend { color: #a6d96a; }
+        .neutral { color: #ffffbf; }
+        .enemy { color: #fdae61; }
+        .debilitated { color: #d73027; }
+        .retrograde { font-style: italic; }
+        #chart-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .test-profile-dropdown {
+            margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Vedic Kundli Calculator</h1>
+        <h1 class="text-center my-4">Vedic Astrology Calculator</h1>
         
-        <div class="input-form">
-            <h2>Enter Birth Details</h2>
-            
-            <div class="test-profile-btn" onclick="loadTestProfile()">Load Test Profile: Nikola</div>
-            
-            <div class="form-group">
-                <label for="name">Name (optional):</label>
-                <input type="text" id="name" placeholder="Enter name">
-            </div>
-            
-            <div class="form-group">
-                <label for="date">Birth Date:</label>
-                <input type="date" id="date" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="time">Birth Time:</label>
-                <input type="time" id="time" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="place">Birth Place:</label>
-                <input type="text" id="place" placeholder="Search for a city..." autocomplete="off">
-                <div id="place-suggestions" class="suggestions"></div>
-            </div>
-            
-            <div class="form-group">
-                <label for="timezone">Timezone:</label>
-                <input type="text" id="timezone" readonly>
-            </div>
-            
-            <button onclick="calculateKundli()">Calculate</button>
-        </div>
-        
-        <div class="results-container" id="results">
-            <h2>Birth Chart Results</h2>
-            
-            <div class="tabs">
-                <div class="tab active" onclick="showTab('chart-tab')">Chart</div>
-                <div class="tab" onclick="showTab('planets-tab')">Planets</div>
-                <div class="tab" onclick="showTab('dasha-tab')">Dasha</div>
-                <div class="tab" onclick="showTab('panchang-tab')">Panchang</div>
-            </div>
-            
-            <div id="chart-tab" class="tab-content active">
-                <div class="chart-container" id="chart">
-                    <p>Chart visualization will be implemented here</p>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Birth Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Test Profile Dropdown -->
+                        <div class="test-profile-dropdown mb-3">
+                            <label for="test-profiles" class="form-label">Load Test Profile</label>
+                            <div class="input-group">
+                                <select class="form-select" id="test-profiles">
+                                    <option value="" selected>Select a profile...</option>
+                                    <!-- Test profiles will be loaded here -->
+                                </select>
+                                <button class="btn btn-outline-secondary" type="button" id="load-profile-btn">Load</button>
+                            </div>
+                        </div>
+                        
+                        <form id="kundli-form">
+                            <div class="mb-3">
+                                <label for="date" class="form-label">Date of Birth</label>
+                                <input type="date" class="form-control" id="date" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="time" class="form-label">Time of Birth</label>
+                                <input type="time" class="form-control" id="time" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="place" class="form-label">Place of Birth</label>
+                                <input type="text" class="form-control" id="place" placeholder="Search for a city..." autocomplete="off">
+                            </div>
+                            <div class="row mb-3" id="coordinates" style="display: none;">
+                                <div class="col-md-6">
+                                    <label for="latitude" class="form-label">Latitude</label>
+                                    <input type="number" class="form-control" id="latitude" step="0.000001">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="longitude" class="form-label">Longitude</label>
+                                    <input type="number" class="form-control" id="longitude" step="0.000001">
+                                </div>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="manual-coordinates">
+                                <label class="form-check-label" for="manual-coordinates">Enter coordinates manually</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Calculate</button>
+                        </form>
+                    </div>
                 </div>
             </div>
             
-            <div id="planets-tab" class="tab-content">
-                <h3>Planetary Positions</h3>
-                <table class="planet-table">
-                    <thead>
-                        <tr>
-                            <th>Planet</th>
-                            <th>Sign</th>
-                            <th>Degrees</th>
-                            <th>Nakshatra</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="positions">
-                        <!-- Planet positions will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-            
-            <div id="dasha-tab" class="tab-content">
-                <h3>Vimshottari Dasha</h3>
-                <table class="dasha-table">
-                    <thead>
-                        <tr>
-                            <th>Planet</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dasha-results">
-                        <!-- Dasha periods will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-            
-            <div id="panchang-tab" class="tab-content">
-                <h3>Panchang Details</h3>
-                <div id="panchang-results">
-                    <!-- Panchang details will be inserted here -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="results" style="display: none;">
+                            <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="chart-tab" data-bs-toggle="tab" data-bs-target="#chart" type="button" role="tab" aria-controls="chart" aria-selected="true">Chart</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="planets-tab" data-bs-toggle="tab" data-bs-target="#planets" type="button" role="tab" aria-controls="planets" aria-selected="false">Planets</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="dasha-tab" data-bs-toggle="tab" data-bs-target="#dasha" type="button" role="tab" aria-controls="dasha" aria-selected="false">Dasha</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="panchang-tab" data-bs-toggle="tab" data-bs-target="#panchang" type="button" role="tab" aria-controls="panchang" aria-selected="false">Panchang</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content" id="resultTabsContent">
+                                <div class="tab-pane fade show active" id="chart" role="tabpanel" aria-labelledby="chart-tab">
+                                    <div id="chart-container"></div>
+                                </div>
+                                <div class="tab-pane fade" id="planets" role="tabpanel" aria-labelledby="planets-tab">
+                                    <h5 class="mb-3">Planetary Positions</h5>
+                                    <table class="planet-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Planet</th>
+                                                <th>Sign</th>
+                                                <th>Degrees</th>
+                                                <th>House</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="planets-table-body">
+                                            <!-- Planets data will be inserted here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="tab-pane fade" id="dasha" role="tabpanel" aria-labelledby="dasha-tab">
+                                    <h5 class="mb-3">Vimshottari Dasha</h5>
+                                    <table class="planet-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Planet</th>
+                                                <th>Start Date</th>
+                                                <th>End Date</th>
+                                                <th>Duration</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dasha-table-body">
+                                            <!-- Dasha data will be inserted here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="tab-pane fade" id="panchang" role="tabpanel" aria-labelledby="panchang-tab">
+                                    <h5 class="mb-3">Panchang Details</h5>
+                                    <table class="planet-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Element</th>
+                                                <th>Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="panchang-table-body">
+                                            <!-- Panchang data will be inserted here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="loading" style="display: none;">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="error-message" class="alert alert-danger" style="display: none;"></div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div id="saved-kundlis">
-            <h2>Saved Kundlis</h2>
-            <div id="saved-list"></div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Global variables
-        let selectedPlace = null;
-        
-        // Function to load test profile
-        function loadTestProfile() {
-            document.getElementById('name').value = 'Nikola';
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('kundli-form');
+            const manualCoordinatesCheckbox = document.getElementById('manual-coordinates');
+            const coordinatesDiv = document.getElementById('coordinates');
+            const placeInput = document.getElementById('place');
+            const latitudeInput = document.getElementById('latitude');
+            const longitudeInput = document.getElementById('longitude');
+            const resultsDiv = document.getElementById('results');
+            const loadingDiv = document.getElementById('loading');
+            const errorMessageDiv = document.getElementById('error-message');
+            const testProfilesSelect = document.getElementById('test-profiles');
+            const loadProfileBtn = document.getElementById('load-profile-btn');
             
-            // Set date in YYYY-MM-DD format for HTML5 date input
-            document.getElementById('date').value = '1990-10-09';
-            
-            // Set time in HH:MM format for HTML5 time input
-            document.getElementById('time').value = '09:10';
-            
-            // Set place
-            document.getElementById('place').value = 'Loznica, Serbia';
-            
-            // Set timezone
-            document.getElementById('timezone').value = 'Europe/Belgrade';
-            
-            // Set coordinates for Loznica, Serbia
-            selectedPlace = {
-                name: 'Loznica, Serbia',
-                lat: 44.5333,
-                lon: 19.2167,
-                timezone: 'Europe/Belgrade'
-            };
-            
-            console.log('Test profile loaded: Nikola (October 9th, 1990)');
-        }
-        
-        // Load saved kundlis on page load
-        window.onload = function() {
-            loadSavedKundlis();
-        };
-        
-        // Place search with debounce
-        let searchTimeout;
-        document.getElementById('place').addEventListener('input', function(e) {
-            clearTimeout(searchTimeout);
-            const query = e.target.value;
-            
-            if (query.length < 2) {
-                document.getElementById('place-suggestions').innerHTML = '';
-                return;
-            }
-            
-            searchTimeout = setTimeout(() => {
-                fetch(`/search_place?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const suggestions = document.getElementById('place-suggestions');
-                        suggestions.innerHTML = '';
-                        
-                        data.forEach(place => {
-                            const div = document.createElement('div');
-                            div.textContent = place.name;
-                            div.onclick = () => selectPlace(place);
-                            suggestions.appendChild(div);
-                        });
-                    });
-            }, 300);
-        });
-        
-        function selectPlace(place) {
-            selectedPlace = place;
-            document.getElementById('place').value = place.name;
-            document.getElementById('timezone').value = place.timezone;
-            document.getElementById('place-suggestions').innerHTML = '';
-        }
-        
-        function calculateKundli() {
-            if (!selectedPlace) {
-                alert('Please select a place from the suggestions');
-                return;
-            }
-            
-            const data = {
-                name: document.getElementById('name').value,
-                date: document.getElementById('date').value,
-                time: document.getElementById('time').value,
-                latitude: selectedPlace.lat,
-                longitude: selectedPlace.lon,
-                timezone: selectedPlace.timezone
-            };
-            
-            fetch('/calculate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.error) {
-                    alert(result.error);
-                    return;
-                }
-                displayResults(result);
-                loadSavedKundlis(); // Refresh saved kundlis
-            });
-        }
-        
-        function displayResults(data) {
-            document.getElementById('results').style.display = 'block';
-            
-            // Display planet positions
-            const positionsDiv = document.getElementById('positions');
-            positionsDiv.innerHTML = '';
-            
-            // Zodiac sign symbols
-            const zodiacSymbols = {
-                'Aries': '♈',
-                'Taurus': '♉',
-                'Gemini': '♊',
-                'Cancer': '♋',
-                'Leo': '♌',
-                'Virgo': '♍',
-                'Libra': '♎',
-                'Scorpio': '♏',
-                'Sagittarius': '♐',
-                'Capricorn': '♑',
-                'Aquarius': '♒',
-                'Pisces': '♓'
-            };
-            
-            // Planet symbols
-            const planetSymbols = {
-                'Sun': '☉',
-                'Moon': '☽',
-                'Mercury': '☿',
-                'Venus': '♀',
-                'Mars': '♂',
-                'Jupiter': '♃',
-                'Saturn': '♄',
-                'Rahu': '☊',
-                'Ketu': '☋'
-            };
-            
-            // Display planet positions in table
-            for (const [planet, info] of Object.entries(data.planets)) {
-                const row = document.createElement('tr');
-                
-                // Add dignity class
-                let dignityClass = '';
-                if (info.dignity === 'Exalted') {
-                    dignityClass = 'exalted';
-                } else if (info.dignity === 'Debilitated') {
-                    dignityClass = 'debilitated';
-                } else if (info.dignity === 'Own sign') {
-                    dignityClass = 'own-sign';
-                } else if (info.dignity === "Friend's sign") {
-                    dignityClass = 'friend-sign';
-                } else if (info.dignity === "Enemy's sign") {
-                    dignityClass = 'enemy-sign';
-                }
-                
-                // Format degree with minutes and seconds
-                const degree = parseFloat(info.degree);
-                const degreeInt = Math.floor(degree);
-                const minutes = Math.floor((degree - degreeInt) * 60);
-                const seconds = Math.floor(((degree - degreeInt) * 60 - minutes) * 60);
-                const formattedDegree = `${degreeInt}° ${minutes}' ${seconds}"`;
-                
-                row.innerHTML = `
-                    <td>${planetSymbols[planet] || ''} ${planet}</td>
-                    <td><span class="zodiac-sign">${zodiacSymbols[info.sign] || ''}</span> ${info.sign}</td>
-                    <td>${formattedDegree}</td>
-                    <td>${info.nakshatra || '-'}</td>
-                    <td class="${dignityClass}">${info.dignity}${info.retrograde ? ' (R)' : ''}</td>
-                `;
-                
-                positionsDiv.appendChild(row);
-            }
-            
-            // Display Dasha periods
-            const dashaDiv = document.getElementById('dasha-results');
-            dashaDiv.innerHTML = '';
-            
-            if (data.dasha && data.dasha.length > 0) {
-                data.dasha.forEach(period => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${planetSymbols[period.planet] || ''} ${period.planet}</td>
-                        <td>${period.start}</td>
-                        <td>${period.end}</td>
-                        <td>${period.duration}</td>
-                    `;
-                    dashaDiv.appendChild(row);
-                });
-            } else {
-                dashaDiv.innerHTML = '<tr><td colspan="4">No dasha information available</td></tr>';
-            }
-            
-            // Display Panchang details
-            const panchangDiv = document.getElementById('panchang-results');
-            panchangDiv.innerHTML = '';
-            
-            if (data.panchang) {
-                const panchangDetails = document.createElement('div');
-                panchangDetails.innerHTML = `
-                    <p><strong>Tithi:</strong> ${data.panchang.tithi || '-'}</p>
-                    <p><strong>Nakshatra:</strong> ${data.panchang.nakshatra || '-'}</p>
-                    <p><strong>Yoga:</strong> ${data.panchang.yoga || '-'}</p>
-                    <p><strong>Karana:</strong> ${data.panchang.karana || '-'}</p>
-                `;
-                panchangDiv.appendChild(panchangDetails);
-            } else {
-                panchangDiv.innerHTML = '<p>No panchang information available</p>';
-            }
-            
-            // Draw chart
-            drawChart(data);
-        }
-        
-        function drawChart(data) {
-            const chart = document.getElementById('chart');
-            chart.innerHTML = ''; // Clear previous chart
-            
-            // Add chart drawing logic here
-            // This is a placeholder - you'll need to implement the actual chart drawing
-            chart.innerHTML = '<p>Chart visualization will be implemented here</p>';
-        }
-        
-        function showTab(tabId) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Remove active class from all tab buttons
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Show selected tab
-            document.getElementById(tabId).classList.add('active');
-            
-            // Add active class to clicked tab button
-            const tabIndex = ['chart-tab', 'planets-tab', 'dasha-tab', 'panchang-tab'].indexOf(tabId);
-            document.querySelectorAll('.tab')[tabIndex].classList.add('active');
-        }
-        
-        function loadSavedKundlis() {
-            fetch('/get_saved_kundlis')
+            // Load test profiles
+            fetch('/test_profiles')
                 .then(response => response.json())
-                .then(data => {
-                    const savedList = document.getElementById('saved-list');
-                    savedList.innerHTML = '';
-                    
-                    data.kundlis.forEach(kundli => {
-                        const div = document.createElement('div');
-                        div.className = 'saved-kundli';
-                        div.innerHTML = `
-                            <h3>${kundli.name || 'Unnamed'}</h3>
-                            <p>Date: ${kundli.date} ${kundli.time}</p>
-                            <button onclick='displayResults(${JSON.stringify(kundli.results)})'>
-                                View
-                            </button>
-                        `;
-                        savedList.appendChild(div);
+                .then(profiles => {
+                    profiles.forEach((profile, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = profile.name;
+                        testProfilesSelect.appendChild(option);
                     });
+                })
+                .catch(error => {
+                    console.error('Error loading test profiles:', error);
                 });
-        }
+            
+            // Load profile button click handler
+            loadProfileBtn.addEventListener('click', function() {
+                const profileId = testProfilesSelect.value;
+                if (!profileId) return;
+                
+                // Show loading indicator
+                loadingDiv.style.display = 'block';
+                errorMessageDiv.style.display = 'none';
+                
+                fetch(`/load_test_profile/${profileId}`)
+                    .then(response => response.json())
+                    .then(profile => {
+                        // Fill form with profile data
+                        document.getElementById('date').value = profile.date;
+                        document.getElementById('time').value = profile.time.substring(0, 5); // HH:MM format
+                        
+                        // Enable manual coordinates
+                        manualCoordinatesCheckbox.checked = true;
+                        coordinatesDiv.style.display = 'flex';
+                        placeInput.disabled = true;
+                        
+                        // Set coordinates
+                        latitudeInput.value = profile.latitude;
+                        longitudeInput.value = profile.longitude;
+                        
+                        // Hide loading indicator
+                        loadingDiv.style.display = 'none';
+                        
+                        // Automatically submit the form
+                        form.dispatchEvent(new Event('submit'));
+                    })
+                    .catch(error => {
+                        showError('Error loading profile: ' + error.message);
+                    });
+            });
+            
+            // Toggle manual coordinates input
+            manualCoordinatesCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    coordinatesDiv.style.display = 'flex';
+                    placeInput.disabled = true;
+                } else {
+                    coordinatesDiv.style.display = 'none';
+                    placeInput.disabled = false;
+                }
+            });
+            
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Show loading indicator
+                resultsDiv.style.display = 'none';
+                loadingDiv.style.display = 'block';
+                errorMessageDiv.style.display = 'none';
+                
+                // Get form values
+                const date = document.getElementById('date').value;
+                const time = document.getElementById('time').value;
+                let latitude, longitude;
+                
+                if (manualCoordinatesCheckbox.checked) {
+                    latitude = parseFloat(latitudeInput.value);
+                    longitude = parseFloat(longitudeInput.value);
+                    
+                    if (isNaN(latitude) || isNaN(longitude)) {
+                        showError('Please enter valid coordinates.');
+                        return;
+                    }
+                } else {
+                    // For demo, use default coordinates if place is not implemented
+                    // In a real app, you would use a geocoding service here
+                    latitude = 28.6139;  // New Delhi
+                    longitude = 77.2090;
+                }
+                
+                // Prepare data for API call
+                const data = {
+                    date: date,
+                    time: time + ':00',  // Add seconds
+                    latitude: latitude,
+                    longitude: longitude,
+                    timezone: 'UTC'  // Default timezone, would be determined by location in a real app
+                };
+                
+                // Call the API
+                fetch('/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Hide loading indicator
+                    loadingDiv.style.display = 'none';
+                    
+                    // Process and display results
+                    displayResults(data);
+                    
+                    // Show results
+                    resultsDiv.style.display = 'block';
+                })
+                .catch(error => {
+                    showError('Error calculating chart: ' + error.message);
+                });
+            });
+            
+            function showError(message) {
+                loadingDiv.style.display = 'none';
+                errorMessageDiv.textContent = message;
+                errorMessageDiv.style.display = 'block';
+            }
+            
+            function displayResults(data) {
+                // Create chart visualization
+                createKundliChart(data, 'chart-container');
+                
+                // Display planets
+                const planetsTableBody = document.getElementById('planets-table-body');
+                planetsTableBody.innerHTML = '';
+                
+                if (data.planets && Array.isArray(data.planets)) {
+                    data.planets.forEach(planet => {
+                        const row = document.createElement('tr');
+                        
+                        // Get zodiac symbol
+                        const zodiacInfo = longitudeToZodiac(planet.longitude);
+                        const zodiacSymbol = getZodiacSymbol(zodiacInfo.sign);
+                        
+                        // Format degrees
+                        const formattedDegrees = formatDMS(zodiacInfo.degrees);
+                        
+                        // Determine dignity class
+                        let dignityClass = 'neutral';
+                        if (planet.dignity) {
+                            dignityClass = planet.dignity.toLowerCase();
+                        }
+                        
+                        // Create cells
+                        row.innerHTML = `
+                            <td>${getPlanetSymbol(planet.name)} ${planet.name}</td>
+                            <td><span class="zodiac-symbol">${zodiacSymbol}</span> ${zodiacInfo.sign}</td>
+                            <td>${formattedDegrees}</td>
+                            <td>${planet.house || '-'}</td>
+                            <td class="${dignityClass}${planet.isRetrograde ? ' retrograde' : ''}">
+                                ${planet.dignity || 'Neutral'}${planet.isRetrograde ? ' (R)' : ''}
+                            </td>
+                        `;
+                        
+                        planetsTableBody.appendChild(row);
+                    });
+                } else if (data.planets && typeof data.planets === 'object') {
+                    // Handle planets as an object
+                    Object.entries(data.planets).forEach(([name, planet]) => {
+                        const row = document.createElement('tr');
+                        
+                        // Get zodiac symbol
+                        const zodiacInfo = longitudeToZodiac(planet.longitude);
+                        const zodiacSymbol = getZodiacSymbol(zodiacInfo.sign);
+                        
+                        // Format degrees
+                        const formattedDegrees = formatDMS(zodiacInfo.degrees);
+                        
+                        // Determine dignity class
+                        let dignityClass = 'neutral';
+                        if (planet.dignity) {
+                            dignityClass = planet.dignity.toLowerCase();
+                        }
+                        
+                        // Create cells
+                        row.innerHTML = `
+                            <td>${getPlanetSymbol(name)} ${name}</td>
+                            <td><span class="zodiac-symbol">${zodiacSymbol}</span> ${zodiacInfo.sign}</td>
+                            <td>${formattedDegrees}</td>
+                            <td>${planet.house || '-'}</td>
+                            <td class="${dignityClass}${planet.isRetrograde ? ' retrograde' : ''}">
+                                ${planet.dignity || 'Neutral'}${planet.isRetrograde ? ' (R)' : ''}
+                            </td>
+                        `;
+                        
+                        planetsTableBody.appendChild(row);
+                    });
+                } else {
+                    planetsTableBody.innerHTML = '<tr><td colspan="5">Planet data not available</td></tr>';
+                }
+                
+                // Display dasha periods
+                const dashaTableBody = document.getElementById('dasha-table-body');
+                dashaTableBody.innerHTML = '';
+                
+                if (data.dasha && data.dasha.periods && data.dasha.periods.length > 0) {
+                    data.dasha.periods.forEach(period => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${getPlanetSymbol(period.planet)} ${period.planet}</td>
+                            <td>${formatDate(period.start)}</td>
+                            <td>${formatDate(period.end)}</td>
+                            <td>${period.duration}</td>
+                        `;
+                        dashaTableBody.appendChild(row);
+                    });
+                } else {
+                    dashaTableBody.innerHTML = '<tr><td colspan="4">Dasha data not available</td></tr>';
+                }
+                
+                // Display panchang details
+                const panchangTableBody = document.getElementById('panchang-table-body');
+                panchangTableBody.innerHTML = '';
+                
+                if (data.panchang) {
+                    const panchangItems = [
+                        { name: 'Tithi', value: data.panchang.tithi },
+                        { name: 'Nakshatra', value: data.panchang.nakshatra },
+                        { name: 'Yoga', value: data.panchang.yoga },
+                        { name: 'Karana', value: data.panchang.karana },
+                        { name: 'Weekday', value: data.panchang.weekday }
+                    ];
+                    
+                    panchangItems.forEach(item => {
+                        if (item.value) {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${item.name}</td>
+                                <td>${item.value}</td>
+                            `;
+                            panchangTableBody.appendChild(row);
+                        }
+                    });
+                } else {
+                    panchangTableBody.innerHTML = '<tr><td colspan="2">Panchang data not available</td></tr>';
+                }
+            }
+            
+            // Helper function to format date
+            function formatDate(dateStr) {
+                if (!dateStr) return '-';
+                const date = new Date(dateStr);
+                return date.toLocaleDateString();
+            }
+            
+            // Helper function to get planet symbols
+            function getPlanetSymbol(planet) {
+                const symbols = {
+                    'Sun': '☉',
+                    'Moon': '☽',
+                    'Mercury': '☿',
+                    'Venus': '♀',
+                    'Mars': '♂',
+                    'Jupiter': '♃',
+                    'Saturn': '♄',
+                    'Rahu': '☊',
+                    'Ketu': '☋',
+                    'Uranus': '♅',
+                    'Neptune': '♆',
+                    'Pluto': '♇'
+                };
+                
+                return symbols[planet] || '';
+            }
+            
+            // Helper function to convert longitude to zodiac sign and degrees
+            function longitudeToZodiac(longitude) {
+                const signs = [
+                    'Aries', 'Taurus', 'Gemini', 'Cancer', 
+                    'Leo', 'Virgo', 'Libra', 'Scorpio', 
+                    'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+                ];
+                
+                const signIndex = Math.floor(longitude / 30) % 12;
+                const degrees = longitude % 30;
+                
+                return {
+                    sign: signs[signIndex],
+                    degrees: degrees
+                };
+            }
+            
+            // Helper function to get zodiac symbols
+            function getZodiacSymbol(sign) {
+                const symbols = {
+                    'Aries': '♈',
+                    'Taurus': '♉',
+                    'Gemini': '♊',
+                    'Cancer': '♋',
+                    'Leo': '♌',
+                    'Virgo': '♍',
+                    'Libra': '♎',
+                    'Scorpio': '♏',
+                    'Sagittarius': '♐',
+                    'Capricorn': '♑',
+                    'Aquarius': '♒',
+                    'Pisces': '♓'
+                };
+                
+                return symbols[sign] || '';
+            }
+            
+            // Helper function to format degrees, minutes, seconds
+            function formatDMS(degrees) {
+                const d = Math.floor(degrees);
+                const mFloat = (degrees - d) * 60;
+                const m = Math.floor(mFloat);
+                const s = Math.round((mFloat - m) * 60);
+                
+                return `${d}° ${m}' ${s}"`;
+            }
+        });
     </script>
 </body>
 </html>

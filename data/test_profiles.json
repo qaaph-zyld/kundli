@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Albert Einstein",
+    "date": "1879-03-14",
+    "time": "11:30:00",
+    "latitude": 48.4010822,
+    "longitude": 9.987607599999999,
+    "timezone": "Europe/Berlin"
+  },
+  {
+    "name": "Mahatma Gandhi",
+    "date": "1869-10-02",
+    "time": "07:12:00",
+    "latitude": 21.6458,
+    "longitude": 69.9323,
+    "timezone": "Asia/Kolkata"
+  },
+  {
+    "name": "Nikola Tesla",
+    "date": "1856-07-10",
+    "time": "00:00:00",
+    "latitude": 44.5652,
+    "longitude": 15.6465,
+    "timezone": "Europe/Belgrade"
+  },
+  {
+    "name": "Marie Curie",
+    "date": "1867-11-07",
+    "time": "12:00:00",
+    "latitude": 52.2297,
+    "longitude": 21.0122,
+    "timezone": "Europe/Warsaw"
+  },
+  {
+    "name": "Nikola",
+    "date": "1990-10-09",
+    "time": "09:10:00",
+    "latitude": 44.5333,
+    "longitude": 19.2231,
+    "timezone": "Europe/Belgrade"
+  }
+]

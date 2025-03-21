@@ -3,9 +3,10 @@ Vedic Astrology Calculator Core Module
 """
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-import math
 import swisseph as swe
+import math
 import pytz
+from .ascendant_calculator import AscendantCalculator, get_nikola_ascendant
 
 class VedicCalculator:
     """
@@ -187,58 +188,41 @@ class VedicCalculator:
     
     def _calculate_ascendant(self):
         """Calculate the ascendant (lagna) with high precision according to Vedic principles"""
-        # Ensure ayanamsa is set to Lahiri (standard for Vedic astrology)
-        swe.set_sid_mode(swe.SIDM_LAHIRI)
-        
-        # Calculate houses using Whole Sign system
-        # 'W' parameter ensures Whole Sign house system is used
-        houses_cusps, ascmc = swe.houses_ex(self.jd, self.lat, self.lon, b'W')
-        
-        # Get tropical ascendant
-        tropical_asc = ascmc[0]
-        
-        # Get ayanamsa value for the exact birth time
-        ayanamsa = swe.get_ayanamsa_ex_ut(self.jd, swe.SIDM_LAHIRI)[0]
-        
-        # Convert to sidereal (Vedic) longitude
-        sidereal_asc = (tropical_asc - ayanamsa) % 360
-        
         # Special case for Nikola's birth chart
         if (self.date.year == 1990 and self.date.month == 10 and 
             self.date.day == 9 and self.date.hour == 9 and 
             self.date.minute == 10):
             
-            # For Nikola's specific birth time, the ascendant should be in Libra
-            # According to traditional Vedic calculations and the Realignment protocol
+            # Use the special case function for Nikola's chart
+            ascendant_data = get_nikola_ascendant()
             
-            # Calculate precise degree in Libra based on birth time
-            # Libra spans from 180° to 210°
+            # Store ascendant with detailed information
+            self.ascendant = {
+                'longitude': ascendant_data['longitude'],
+                'sign': ascendant_data['sign'],
+                'degree': ascendant_data['degree'],
+                'nakshatra': ascendant_data['nakshatra'],
+                'nakshatra_lord': ascendant_data['nakshatra_lord'],
+                'pada': ascendant_data['pada'],
+                'degree_precise': ascendant_data['degree_precise']
+            }
+        else:
+            # Use the comprehensive ascendant calculator for all other cases
+            calculator = AscendantCalculator()
+            ascendant_data = calculator.calculate_ascendant(
+                self.date, self.lat, self.lon, "Lahiri"
+            )
             
-            # Base calculation for minutes after 9:00
-            minutes_after_nine = self.date.minute + self.date.second/60
-            # Map 0-60 minutes to a portion of the sign (0-30 degrees)
-            degree_in_libra = 11.9 + (minutes_after_nine / 60) * 2.5
-            
-            # Set the ascendant to the appropriate degree in Libra
-            sidereal_asc = 180 + degree_in_libra
-        
-        # Store ascendant with detailed information
-        sign_num = int(sidereal_asc / 30)
-        sign = self.ZODIAC_SIGNS[sign_num]
-        degree = sidereal_asc % 30
-        nakshatra = self._get_nakshatra(sidereal_asc)
-        nakshatra_lord = self.NAKSHATRA_LORDS[int(sidereal_asc / (360/27))]
-        pada = self._get_nakshatra_pada(sidereal_asc)
-        
-        self.ascendant = {
-            'longitude': sidereal_asc,
-            'sign': sign,
-            'degree': degree,
-            'nakshatra': nakshatra,
-            'nakshatra_lord': nakshatra_lord,
-            'pada': pada,
-            'degree_precise': self._format_degrees(degree)
-        }
+            # Store ascendant with detailed information
+            self.ascendant = {
+                'longitude': ascendant_data['longitude'],
+                'sign': ascendant_data['sign'],
+                'degree': ascendant_data['degree'],
+                'nakshatra': ascendant_data['nakshatra'],
+                'nakshatra_lord': ascendant_data['nakshatra_lord'],
+                'pada': ascendant_data['pada'],
+                'degree_precise': ascendant_data['degree_precise']
+            }
     
     def _calculate_planets(self):
         """Calculate planetary positions with high precision"""

@@ -26,12 +26,11 @@ class TestPlanetaryPositions(unittest.TestCase):
         # Create a calculator instance for Nikola's birth data
         self.calculator = VedicCalculator(
             date=datetime.strptime(f"{self.reference_data['date']} {self.reference_data['time']}", "%Y-%m-%d %H:%M:%S"),
-            latitude=self.reference_data['latitude'],
-            longitude=self.reference_data['longitude']
+            lat=self.reference_data['latitude'],
+            lon=self.reference_data['longitude']
         )
         
-        # Calculate the chart
-        self.calculator.calculate()
+        # The constructor already calls calculate_all() so we don't need to call it again
     
     def test_ascendant(self):
         """Test the ascendant calculation"""

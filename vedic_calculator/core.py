@@ -252,7 +252,12 @@ class VedicCalculator:
                     'nakshatra_lord': nakshatra_lord,
                     'isRetrograde': False,
                     'dignity': 'neutral',  # Nodes don't have traditional dignities
-                    'degree_precise': self._format_degrees(degree)
+                    'degree_precise': self._format_degrees(degree),
+                    'state': {
+                        'combustion': False,  # Nodes are not subject to combustion
+                        'war': False,  # Nodes are not subject to planetary war
+                        'retrograde': False
+                    }
                 }
             else:
                 try:
@@ -292,7 +297,12 @@ class VedicCalculator:
                         'nakshatra_lord': nakshatra_lord,
                         'isRetrograde': is_retrograde,
                         'dignity': dignity,
-                        'degree_precise': self._format_degrees(degree)
+                        'degree_precise': self._format_degrees(degree),
+                        'state': {
+                            'combustion': False,  # Will be calculated later
+                            'war': False,  # Will be calculated later
+                            'retrograde': is_retrograde
+                        }
                     }
                 except Exception as e:
                     print(f"Error calculating {planet_name}: {str(e)}")
@@ -305,8 +315,17 @@ class VedicCalculator:
                         'nakshatra': 'Unknown',
                         'isRetrograde': False,
                         'dignity': 'neutral',
-                        'error': str(e)
+                        'error': str(e),
+                        'state': {
+                            'combustion': False,
+                            'war': False,
+                            'retrograde': False
+                        }
                     }
+        
+        # Calculate combustion and planetary war after all planets are calculated
+        self._calculate_combustion()
+        self._calculate_planetary_war()
     
     def _calculate_houses(self):
         """Calculate houses using Whole Sign system with high precision"""
@@ -1880,3 +1899,122 @@ class VedicCalculator:
             }
         
         return trimshamsa
+
+    def _calculate_combustion(self):
+        """
+        Calculate combustion state for planets
+        
+        In Vedic astrology, planets are considered combust when they are too close to the Sun.
+        Different planets have different orbs for combustion.
+        """
+        # Combustion orbs in degrees
+        combustion_orbs = {
+            'Mercury': 14,
+            'Venus': 10,
+            'Mars': 17,
+            'Jupiter': 11,
+            'Saturn': 15,
+            'Moon': 12  # Some traditions consider Moon combust when it's new
+        }
+        
+        # Get Sun's longitude
+        sun_lon = self.planets['Sun']['longitude']
+        
+        # Check each planet for combustion
+        for planet_name, orb in combustion_orbs.items():
+            if planet_name in self.planets:
+                planet_lon = self.planets[planet_name]['longitude']
+                
+                # Calculate angular distance between planet and Sun
+                angular_distance = min(
+                    (planet_lon - sun_lon) % 360,
+                    (sun_lon - planet_lon) % 360
+                )
+                
+                # Check if planet is combust
+                is_combust = angular_distance < orb
+                
+                # Update planet's combustion state
+                if 'state' in self.planets[planet_name]:
+                    self.planets[planet_name]['state']['combustion'] = is_combust
+                    
+                    # Add combustion degree information
+                    if is_combust:
+                        self.planets[planet_name]['state']['combustion_degree'] = angular_distance
+    
+    def _calculate_planetary_war(self):
+        """
+        Calculate planetary war (graha yuddha) between planets
+        
+        In Vedic astrology, planets are considered to be at war when they are within 1 degree of each other.
+        The stronger planet wins the war based on various factors.
+        """
+        # List of planets that can participate in planetary war
+        war_planets = ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
+        
+        # First, reset all war states
+        for planet in war_planets:
+            if planet in self.planets:
+                self.planets[planet]['state']['war'] = False
+                if 'war_with' in self.planets[planet]['state']:
+                    del self.planets[planet]['state']['war_with']
+                if 'war_winner' in self.planets[planet]['state']:
+                    del self.planets[planet]['state']['war_winner']
+        
+        # Check each pair of planets for war
+        for i, planet1 in enumerate(war_planets):
+            if planet1 not in self.planets:
+                continue
+                
+            for planet2 in war_planets[i+1:]:
+                if planet2 not in self.planets:
+                    continue
+                    
+                # Get longitudes
+                lon1 = self.planets[planet1]['longitude']
+                lon2 = self.planets[planet2]['longitude']
+                
+                # Calculate angular distance
+                angular_distance = min(
+                    (lon1 - lon2) % 360,
+                    (lon2 - lon1) % 360
+                )
+                
+                # Check if planets are at war (within 1 degree)
+                if angular_distance <= 1.0:
+                    # Determine winner based on:
+                    # 1. Exaltation vs. Debilitation
+                    # 2. Northern vs. Southern latitude
+                    # 3. Brightness/Magnitude
+                    # 4. Speed
+                    # For simplicity, we'll use a basic approach
+                    
+                    # Get dignities
+                    dignity1 = self.planets[planet1]['dignity']
+                    dignity2 = self.planets[planet2]['dignity']
+                    
+                    # Assign points for dignity
+                    dignity_points = {
+                        'exalted': 5,
+                        'own': 4,
+                        'friend': 3,
+                        'neutral': 2,
+                        'enemy': 1,
+                        'debilitated': 0
+                    }
+                    
+                    points1 = dignity_points.get(dignity1, 2)
+                    points2 = dignity_points.get(dignity2, 2)
+                    
+                    # Determine winner
+                    winner = planet1 if points1 >= points2 else planet2
+                    loser = planet2 if winner == planet1 else planet1
+                    
+                    # Update planets' war state
+                    self.planets[planet1]['state']['war'] = True
+                    self.planets[planet1]['state']['war_with'] = planet2
+                    self.planets[planet1]['state']['war_winner'] = (winner == planet1)
+                    
+                    self.planets[planet2]['state']['war'] = True
+                    self.planets[planet2]['state']['war_with'] = planet1
+                    self.planets[planet2]['state']['war_winner'] = (winner == planet2)

@@ -104,6 +104,55 @@ class VedicCalculator:
         'Saturn': ['Mercury', 'Venus'],
     }
     
+    # Constants for planetary relationships
+    PLANET_RELATIONSHIPS = {
+        'Sun': {
+            'friends': ['Moon', 'Mars', 'Jupiter'],
+            'enemies': ['Venus', 'Saturn'],
+            'neutral': ['Mercury']
+        },
+        'Moon': {
+            'friends': ['Sun', 'Mercury'],
+            'enemies': ['Rahu', 'Ketu'],
+            'neutral': ['Mars', 'Jupiter', 'Venus', 'Saturn']
+        },
+        'Mars': {
+            'friends': ['Sun', 'Moon', 'Jupiter'],
+            'enemies': ['Mercury'],
+            'neutral': ['Venus', 'Saturn', 'Rahu', 'Ketu']
+        },
+        'Mercury': {
+            'friends': ['Sun', 'Venus'],
+            'enemies': ['Moon'],
+            'neutral': ['Mars', 'Jupiter', 'Saturn', 'Rahu', 'Ketu']
+        },
+        'Jupiter': {
+            'friends': ['Sun', 'Moon', 'Mars'],
+            'enemies': ['Mercury', 'Venus'],
+            'neutral': ['Saturn', 'Rahu', 'Ketu']
+        },
+        'Venus': {
+            'friends': ['Mercury', 'Saturn'],
+            'enemies': ['Sun', 'Moon'],
+            'neutral': ['Mars', 'Jupiter', 'Rahu', 'Ketu']
+        },
+        'Saturn': {
+            'friends': ['Mercury', 'Venus'],
+            'enemies': ['Sun', 'Moon', 'Mars'],
+            'neutral': ['Jupiter', 'Rahu', 'Ketu']
+        },
+        'Rahu': {
+            'friends': ['Venus', 'Saturn'],
+            'enemies': ['Sun', 'Moon'],
+            'neutral': ['Mars', 'Mercury', 'Jupiter', 'Ketu']
+        },
+        'Ketu': {
+            'friends': ['Mars', 'Venus', 'Saturn'],
+            'enemies': ['Sun', 'Moon'],
+            'neutral': ['Mercury', 'Jupiter', 'Rahu']
+        }
+    }
+    
     def __init__(self, date: datetime, lat: float = 0.0, lon: float = 0.0, ayanamsa: str = 'Lahiri'):
         """
         Initialize the Vedic Calculator
@@ -257,7 +306,8 @@ class VedicCalculator:
                         'combustion': False,  # Nodes are not subject to combustion
                         'war': False,  # Nodes are not subject to planetary war
                         'retrograde': False
-                    }
+                    },
+                    'relationships': {}  # Will be filled later
                 }
             else:
                 try:
@@ -302,7 +352,8 @@ class VedicCalculator:
                             'combustion': False,  # Will be calculated later
                             'war': False,  # Will be calculated later
                             'retrograde': is_retrograde
-                        }
+                        },
+                        'relationships': {}  # Will be filled later
                     }
                 except Exception as e:
                     print(f"Error calculating {planet_name}: {str(e)}")
@@ -320,12 +371,14 @@ class VedicCalculator:
                             'combustion': False,
                             'war': False,
                             'retrograde': False
-                        }
+                        },
+                        'relationships': {}  # Will be filled later
                     }
         
         # Calculate combustion and planetary war after all planets are calculated
         self._calculate_combustion()
         self._calculate_planetary_war()
+        self._calculate_planetary_relationships()
     
     def _calculate_houses(self):
         """Calculate houses using Whole Sign system with high precision"""
@@ -2018,3 +2071,88 @@ class VedicCalculator:
                     self.planets[planet2]['state']['war'] = True
                     self.planets[planet2]['state']['war_with'] = planet1
                     self.planets[planet2]['state']['war_winner'] = (winner == planet2)
+
+    def _calculate_planetary_relationships(self):
+        """
+        Calculate friendship and enmity relationships between planets
+        
+        In Vedic astrology, planets have natural relationships (friends, enemies, neutral)
+        as well as temporary relationships based on their positions.
+        """
+        # Calculate natural relationships
+        for planet1 in self.planets:
+            if planet1 not in self.PLANET_RELATIONSHIPS:
+                continue
+                
+            self.planets[planet1]['relationships'] = {}
+            
+            for planet2 in self.planets:
+                if planet1 == planet2 or planet2 not in self.PLANET_RELATIONSHIPS:
+                    continue
+                    
+                # Determine natural relationship
+                if planet2 in self.PLANET_RELATIONSHIPS[planet1]['friends']:
+                    relationship = 'friend'
+                elif planet2 in self.PLANET_RELATIONSHIPS[planet1]['enemies']:
+                    relationship = 'enemy'
+                else:
+                    relationship = 'neutral'
+                
+                # Store relationship
+                self.planets[planet1]['relationships'][planet2] = {
+                    'natural': relationship
+                }
+        
+        # Calculate temporary relationships based on house positions
+        for planet1 in self.planets:
+            if planet1 not in self.PLANET_RELATIONSHIPS:
+                continue
+                
+            house1 = self.planets[planet1]['house']
+            
+            for planet2 in self.planets:
+                if planet1 == planet2 or planet2 not in self.PLANET_RELATIONSHIPS:
+                    continue
+                    
+                house2 = self.planets[planet2]['house']
+                
+                # Calculate house distance (from planet1 to planet2)
+                house_distance = (house2 - house1) % 12
+                
+                # Determine temporary relationship based on house distance
+                # Houses 2, 12 = Neutral
+                # Houses 3, 4, 10, 11 = Friend
+                # Houses 1, 5, 6, 7, 8, 9 = Enemy
+                if house_distance in [3, 4, 10, 11]:
+                    temp_relationship = 'friend'
+                elif house_distance in [2, 12]:
+                    temp_relationship = 'neutral'
+                else:  # 1, 5, 6, 7, 8, 9 and 0 (same house)
+                    temp_relationship = 'enemy'
+                
+                # Store temporary relationship
+                self.planets[planet1]['relationships'][planet2]['temporary'] = temp_relationship
+                
+                # Calculate composite relationship
+                natural = self.planets[planet1]['relationships'][planet2]['natural']
+                temporary = temp_relationship
+                
+                if natural == temporary:
+                    composite = natural
+                elif natural == 'friend' and temporary == 'enemy':
+                    composite = 'neutral'
+                elif natural == 'enemy' and temporary == 'friend':
+                    composite = 'neutral'
+                elif natural == 'neutral' and temporary == 'friend':
+                    composite = 'friend'
+                elif natural == 'neutral' and temporary == 'enemy':
+                    composite = 'enemy'
+                elif natural == 'friend' and temporary == 'neutral':
+                    composite = 'friend'
+                elif natural == 'enemy' and temporary == 'neutral':
+                    composite = 'enemy'
+                else:
+                    composite = 'neutral'
+                
+                # Store composite relationship
+                self.planets[planet1]['relationships'][planet2]['composite'] = composite

@@ -7,6 +7,7 @@ import swisseph as swe
 import math
 import pytz
 from .ascendant_calculator import AscendantCalculator, get_nikola_ascendant
+from .ashtakavarga import AshtakavargaCalculator
 
 class VedicCalculator:
     """
@@ -181,6 +182,8 @@ class VedicCalculator:
         self.houses = {}
         self.ascendant = None
         self.special_points = {}
+        self.bhava_bala = {}
+        self.ashtakavarga = None
         
         # Calculate all elements
         self.calculate_all()
@@ -210,31 +213,15 @@ class VedicCalculator:
         self._calculate_planets()
         self._calculate_houses()
         self._calculate_special_points()
-    
-    def calculate_divisional_charts(self):
-        """
-        Calculate divisional charts (vargas)
         
-        Returns:
-            Dictionary with divisional chart data
-        """
-        divisional_charts = {
-            'D1': self.planets,  # Rashi chart (birth chart)
-            'D3': self._calculate_drekkana(),  # Drekkana chart (3rd division)
-            'D4': self._calculate_chaturthamsa(),  # Chaturthamsa chart (4th division)
-            'D7': self._calculate_saptamsa(),  # Saptamsa chart (7th division)
-            'D9': self._calculate_navamsa(),  # Navamsa chart (9th division)
-            'D10': self._calculate_dasamsa(),  # Dasamsa chart (10th division)
-            'D12': self._calculate_dwadasamsa(),  # Dwadasamsa chart (12th division)
-            'D16': self._calculate_shodasamsa(),  # Shodasamsa chart (16th division)
-            'D20': self._calculate_vimshamsa(),  # Vimshamsa chart (20th division)
-            'D24': self._calculate_chaturvimshamsa(),  # Chaturvimshamsa chart (24th division)
-            'D27': self._calculate_nakshatramsa(),  # Nakshatramsa chart (27th division)
-            'D30': self._calculate_trimshamsa(),  # Trimshamsa chart (30th division)
-        }
+        # Calculate dignity for each planet
+        for planet_name, planet_data in self.planets.items():
+            if 'sign' in planet_data:
+                planet_data['dignity'] = self._calculate_dignity(planet_name, planet_data['sign'])
         
-        return divisional_charts
-    
+        # Calculate Ashtakavarga
+        self._calculate_ashtakavarga()
+
     def _calculate_ascendant(self):
         """Calculate the ascendant (lagna) with high precision according to Vedic principles"""
         # Special case for Nikola's birth chart
@@ -334,9 +321,6 @@ class VedicCalculator:
                     # Determine if planet is retrograde
                     is_retrograde = speed_lon < 0
                     
-                    # Calculate dignity
-                    dignity = self._calculate_dignity(planet_name, sign)
-                    
                     # Store planet data with detailed information
                     self.planets[planet_name] = {
                         'longitude': sidereal_lon,
@@ -346,7 +330,7 @@ class VedicCalculator:
                         'nakshatra': nakshatra,
                         'nakshatra_lord': nakshatra_lord,
                         'isRetrograde': is_retrograde,
-                        'dignity': dignity,
+                        'dignity': 'neutral',  # Will be calculated later
                         'degree_precise': self._format_degrees(degree),
                         'state': {
                             'combustion': False,  # Will be calculated later
@@ -1209,7 +1193,7 @@ class VedicCalculator:
         
         return dwadasamsa
 
-    def calculate_vimshottari_dasha(self):
+    def _calculate_vimshottari_dasha(self):
         """
         Calculate Vimshottari Dasha periods
         
@@ -1952,6 +1936,135 @@ class VedicCalculator:
             }
         
         return trimshamsa
+
+    def _calculate_ashtakavarga(self):
+        """
+        Calculate the Ashtakavarga system with bindus for all planets and houses
+        
+        Ashtakavarga is a key Vedic astrology technique for evaluating planetary
+        and house strengths through bindu (beneficial point) calculations.
+        """
+        # Initialize Ashtakavarga calculator
+        ashtakavarga_calculator = AshtakavargaCalculator(self)
+        
+        # Calculate complete Ashtakavarga
+        self.ashtakavarga = ashtakavarga_calculator.calculate_ashtakavarga()
+    
+    def get_prastarashtakavarga(self, planet=None):
+        """
+        Get the Prastarashtakavarga (individual planet's Ashtakavarga)
+        
+        Args:
+            planet: Optional planet name to get specific Ashtakavarga
+            
+        Returns:
+            Dict containing Ashtakavarga data
+        """
+        if not self.ashtakavarga:
+            self._calculate_ashtakavarga()
+            
+        if planet:
+            if planet in self.ashtakavarga['prastarashtakavarga']:
+                return self.ashtakavarga['prastarashtakavarga'][planet]
+            return {}
+        
+        return self.ashtakavarga['prastarashtakavarga']
+    
+    def get_sarvashtakavarga(self):
+        """
+        Get the Sarvashtakavarga (combined Ashtakavarga of all planets)
+        
+        Returns:
+            Dict containing Sarvashtakavarga data
+        """
+        if not self.ashtakavarga:
+            self._calculate_ashtakavarga()
+            
+        return self.ashtakavarga['sarvashtakavarga']
+    
+    def get_planet_bindu_total(self, planet):
+        """
+        Get the total bindu score for a planet across all houses
+        
+        Args:
+            planet: The planet to get the bindu score for
+            
+        Returns:
+            Total bindu score (int)
+        """
+        if not self.ashtakavarga:
+            self._calculate_ashtakavarga()
+            
+        if planet not in self.ashtakavarga['prastarashtakavarga']:
+            return 0
+            
+        return sum(self.ashtakavarga['prastarashtakavarga'][planet].values())
+    
+    def get_house_bindu_total(self, house):
+        """
+        Get the total bindu score for a house from all planets
+        
+        Args:
+            house: The house number to get the bindu score for
+            
+        Returns:
+            Total bindu score (int)
+        """
+        if not self.ashtakavarga:
+            self._calculate_ashtakavarga()
+            
+        if house not in self.ashtakavarga['sarvashtakavarga']:
+            return 0
+            
+        return self.ashtakavarga['sarvashtakavarga'][house]
+    
+    def get_ashtakavarga_strength(self):
+        """
+        Get the overall Ashtakavarga strength assessment
+        
+        Returns:
+            Dict containing strength assessments for planets and houses
+        """
+        if not self.ashtakavarga:
+            self._calculate_ashtakavarga()
+            
+        planet_strengths = {}
+        house_strengths = {}
+        
+        # Assess planet strengths (30+ is strong, 25-29 is medium, below 25 is weak)
+        for planet in ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn']:
+            total = self.get_planet_bindu_total(planet)
+            if total >= 30:
+                strength = 'strong'
+            elif total >= 25:
+                strength = 'medium'
+            else:
+                strength = 'weak'
+                
+            planet_strengths[planet] = {
+                'total_bindus': total,
+                'strength': strength
+            }
+        
+        # Assess house strengths (30+ is strong, 20-29 is medium, below 20 is weak)
+        for house in range(1, 13):
+            total = self.get_house_bindu_total(house)
+            if total >= 30:
+                strength = 'strong'
+            elif total >= 20:
+                strength = 'medium'
+            else:
+                strength = 'weak'
+                
+            house_strengths[house] = {
+                'total_bindus': total,
+                'strength': strength
+            }
+            
+        return {
+            'planet_strengths': planet_strengths,
+            'house_strengths': house_strengths
+        }
 
     def _calculate_combustion(self):
         """

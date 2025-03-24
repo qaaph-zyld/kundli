@@ -197,6 +197,13 @@ def calculate_chart_internal(data):
         # Detect yogas
         yogas = calculator.detect_yogas()
         
+        # Get Ashtakavarga data
+        ashtakavarga = {
+            'prastarashtakavarga': calculator.get_prastarashtakavarga(),
+            'sarvashtakavarga': calculator.get_sarvashtakavarga(),
+            'strength': calculator.get_ashtakavarga_strength()
+        }
+        
         print("All calculations completed successfully")
     except Exception as e:
         print(f"Error in calculations: {str(e)}")
@@ -295,7 +302,8 @@ def calculate_chart_internal(data):
         'panchang': panchang,
         'chart_data': chart_data,
         'divisional_charts': divisional_charts,
-        'yogas': yogas
+        'yogas': yogas,
+        'ashtakavarga': ashtakavarga
     }
     
     return response

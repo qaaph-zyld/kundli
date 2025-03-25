@@ -8,6 +8,7 @@ import math
 import pytz
 from .ascendant_calculator import AscendantCalculator, get_nikola_ascendant
 from .ashtakavarga import AshtakavargaCalculator
+from .shadbala import ShadbalaCalculator
 
 class VedicCalculator:
     """
@@ -457,19 +458,136 @@ class VedicCalculator:
     
     def calculate_dasha(self):
         """
-        Calculate Vimshottari Dasha periods with high precision
+        Calculate Dasha periods with high precision
         
         Returns:
             Dictionary with dasha information
         """
-        # Get birth Moon nakshatra and position within it
-        moon_lon = self.planets['Moon']['longitude']
+        return self._calculate_dasha()
+    
+    def _calculate_dasha(self):
+        """
+        Calculate Dasha periods with high precision
+        
+        Returns:
+            Dictionary with dasha information
+        """
+        try:
+            # Get birth Moon nakshatra and position within it
+            moon_lon = self.planets['Moon']['longitude']
+            nakshatra_span = 360 / 27  # 13.33333...
+            nakshatra_index = int(moon_lon / nakshatra_span)
+            moon_nakshatra = self.NAKSHATRAS[nakshatra_index]
+            
+            # Calculate position within nakshatra (0 to 1)
+            position_in_nakshatra = (moon_lon % nakshatra_span) / nakshatra_span
+            
+            # Get lord of birth nakshatra
+            birth_lord = self.NAKSHATRA_LORDS[nakshatra_index]
+            
+            # Calculate remaining dasha years of birth lord
+            remaining_years = self.DASHA_YEARS[birth_lord] * (1 - position_in_nakshatra)
+            
+            # Calculate birth date
+            birth_date = self.date
+            
+            # Generate dasha periods
+            periods = []
+            current_date = birth_date
+            
+            # Start with birth lord
+            current_lord_index = list(self.DASHA_YEARS.keys()).index(birth_lord)
+            
+            # Add birth lord's remaining period
+            start_date = current_date
+            years_remaining = remaining_years
+            end_date = start_date + relativedelta(years=int(years_remaining), 
+                                                 days=int((years_remaining % 1) * 365.25))
+            
+            periods.append({
+                'planet': birth_lord,
+                'start': start_date.strftime('%Y-%m-%d'),
+                'end': end_date.strftime('%Y-%m-%d'),
+                'duration': f"{remaining_years:.2f} years"
+            })
+            
+            current_date = end_date
+            
+            # Add subsequent periods
+            for i in range(1, 9):  # 8 more planets after birth lord
+                next_lord_index = (current_lord_index + i) % 9
+                next_lord = list(self.DASHA_YEARS.keys())[next_lord_index]
+                years = self.DASHA_YEARS[next_lord]
+                
+                start_date = current_date
+                end_date = start_date + relativedelta(years=years)
+                
+                periods.append({
+                    'planet': next_lord,
+                    'start': start_date.strftime('%Y-%m-%d'),
+                    'end': end_date.strftime('%Y-%m-%d'),
+                    'duration': f"{years} years"
+                })
+                
+                current_date = end_date
+            
+            return {
+                'birth_nakshatra': moon_nakshatra,
+                'birth_lord': birth_lord,
+                'periods': periods
+            }
+        except Exception as e:
+            print(f"Error calculating dasha: {str(e)}")
+            # Return a minimal structure to avoid breaking the API
+            return {
+                'birth_nakshatra': 'Unknown',
+                'birth_lord': 'Unknown',
+                'periods': []
+            }
+    
+    def calculate_vimshottari_dasha(self):
+        """
+        Calculate Vimshottari Dasha periods with high precision
+        
+        Returns:
+            Dictionary with vimshottari dasha information
+        """
+        return self._calculate_vimshottari_dasha()
+    
+    def _calculate_vimshottari_dasha(self):
+        """
+        Calculate Vimshottari Dasha periods
+        
+        Vimshottari Dasha is a 120-year predictive system based on the Moon's nakshatra
+        at birth. It divides life into planetary periods (mahadashas) and sub-periods (antardashas).
+        
+        Returns:
+            Dictionary with dasha periods and timings
+        """
+        # Vimshottari Dasha planet sequence and their periods in years
+        dasha_sequence = [
+            {'planet': 'Ketu', 'years': 7},
+            {'planet': 'Venus', 'years': 20},
+            {'planet': 'Sun', 'years': 6},
+            {'planet': 'Moon', 'years': 10},
+            {'planet': 'Mars', 'years': 7},
+            {'planet': 'Rahu', 'years': 18},
+            {'planet': 'Jupiter', 'years': 16},
+            {'planet': 'Saturn', 'years': 19},
+            {'planet': 'Mercury', 'years': 17}
+        ]
+        
+        # Total Vimshottari cycle is 120 years
+        total_years = 120
+        
+        # Get Moon's nakshatra and its portion
+        moon_longitude = self.planets['Moon']['longitude']
         nakshatra_span = 360 / 27  # 13.33333...
-        nakshatra_index = int(moon_lon / nakshatra_span)
+        nakshatra_index = int(moon_longitude / nakshatra_span)
         moon_nakshatra = self.NAKSHATRAS[nakshatra_index]
         
         # Calculate position within nakshatra (0 to 1)
-        position_in_nakshatra = (moon_lon % nakshatra_span) / nakshatra_span
+        position_in_nakshatra = (moon_longitude % nakshatra_span) / nakshatra_span
         
         # Get lord of birth nakshatra
         birth_lord = self.NAKSHATRA_LORDS[nakshatra_index]
@@ -485,7 +603,7 @@ class VedicCalculator:
         current_date = birth_date
         
         # Start with birth lord
-        current_lord_index = self.NAKSHATRA_LORDS.index(birth_lord)
+        current_lord_index = list(self.DASHA_YEARS.keys()).index(birth_lord)
         
         # Add birth lord's remaining period
         start_date = current_date
@@ -494,9 +612,10 @@ class VedicCalculator:
         
         periods.append({
             'planet': birth_lord,
-            'start': start_date.strftime('%Y-%m-%d'),
-            'end': end_date.strftime('%Y-%m-%d'),
-            'duration': f"{remaining_years:.2f} years"
+            'start_date': start_date.strftime('%Y-%m-%d'),
+            'end_date': end_date.strftime('%Y-%m-%d'),
+            'duration': f"{remaining_years:.2f} years",
+            'antardashas': self._calculate_antardashas(start_date, end_date, birth_lord)
         })
         
         current_date = end_date
@@ -513,369 +632,92 @@ class VedicCalculator:
             
             periods.append({
                 'planet': next_lord,
-                'start': start_date.strftime('%Y-%m-%d'),
-                'end': end_date.strftime('%Y-%m-%d'),
-                'duration': f"{years} years"
+                'start_date': start_date.strftime('%Y-%m-%d'),
+                'end_date': end_date.strftime('%Y-%m-%d'),
+                'duration': f"{years} years",
+                'antardashas': self._calculate_antardashas(start_date, end_date, next_lord)
             })
             
             current_date = end_date
         
         return {
-            'birth_nakshatra': moon_nakshatra,
-            'birth_lord': birth_lord,
-            'periods': periods
+            'birth_date': birth_date.strftime('%Y-%m-%d'),
+            'moon_nakshatra': moon_nakshatra,
+            'moon_nakshatra_lord': self.planets['Moon']['nakshatra_lord'],
+            'dasha_periods': periods
         }
     
-    def calculate_panchang(self):
+    def _calculate_antardashas(self, start_date, end_date, mahadasha_lord):
         """
-        Calculate Panchang (five limbs of the day) with high precision
+        Calculate Antardasha (sub-periods) for a given Mahadasha
         
+        Args:
+            start_date: Start date of the Mahadasha
+            end_date: End date of the Mahadasha
+            mahadasha_lord: Planet ruling the Mahadasha
+            
         Returns:
-            Dictionary with panchang information
+            List of Antardasha periods
         """
-        # Calculate tithi (lunar day)
-        sun_lon = self.planets['Sun']['longitude']
-        moon_lon = self.planets['Moon']['longitude']
-        
-        # Tithi is the difference between Moon and Sun longitudes
-        tithi_lon = (moon_lon - sun_lon) % 360
-        tithi_num = int(tithi_lon / 12) + 1  # Each tithi is 12 degrees
-        
-        # Determine tithi name
-        if tithi_num <= 15:
-            tithi_phase = "Shukla"  # Bright half
-            tithi_day = tithi_num
-        else:
-            tithi_phase = "Krishna"  # Dark half
-            tithi_day = tithi_num - 15
-        
-        tithi = f"{tithi_phase} {tithi_day}"
-        
-        # Calculate nakshatra (lunar mansion)
-        moon_nakshatra = self.planets['Moon']['nakshatra']
-        
-        # Calculate yoga (combination of Sun and Moon)
-        yoga_lon = (sun_lon + moon_lon) % 360
-        yoga_num = int(yoga_lon / (360/27))
-        
-        # Yoga names
-        yoga_names = [
-            "Vishkumbha", "Preeti", "Ayushman", "Saubhagya", "Shobhana",
-            "Atiganda", "Sukarma", "Dhriti", "Shula", "Ganda",
-            "Vriddhi", "Dhruva", "Vyaghata", "Harshana", "Vajra",
-            "Siddhi", "Vyatipata", "Variyan", "Parigha", "Shiva",
-            "Siddha", "Sadhya", "Shubha", "Shukla", "Brahma",
-            "Indra", "Vaidhriti"
+        # Vimshottari Dasha planet sequence and their periods in years
+        dasha_sequence = [
+            {'planet': 'Ketu', 'years': 7},
+            {'planet': 'Venus', 'years': 20},
+            {'planet': 'Sun', 'years': 6},
+            {'planet': 'Moon', 'years': 10},
+            {'planet': 'Mars', 'years': 7},
+            {'planet': 'Rahu', 'years': 18},
+            {'planet': 'Jupiter', 'years': 16},
+            {'planet': 'Saturn', 'years': 19},
+            {'planet': 'Mercury', 'years': 17}
         ]
         
-        yoga = yoga_names[yoga_num]
+        # Find the mahadasha lord in the sequence
+        mahadasha_index = next((i for i, d in enumerate(dasha_sequence) if d['planet'] == mahadasha_lord), 0)
         
-        # Calculate karana (half of tithi)
-        karana_num = int(tithi_lon / 6) % 11  # Each karana is 6 degrees
+        # Calculate total duration of the mahadasha in days
+        total_days = (end_date - start_date).days
         
-        # Karana names
-        karana_names = [
-            "Bava", "Balava", "Kaulava", "Taitila", "Gara",
-            "Vanija", "Vishti", "Bava", "Balava", "Kaulava", "Taitila"
-        ]
+        # Initialize antardasha periods
+        antardashas = []
+        current_date = start_date
         
-        karana = karana_names[karana_num]
-        
-        # Calculate weekday
-        weekday_num = int(self.jd + 1.5) % 7
-        weekday_names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-        weekday = weekday_names[weekday_num]
-        
-        return {
-            'tithi': tithi,
-            'nakshatra': moon_nakshatra,
-            'yoga': yoga,
-            'karana': karana,
-            'weekday': weekday
-        }
-    
-    def detect_yogas(self):
-        """
-        Detect important yogas in the chart
-        
-        Returns:
-            Dictionary with detected yogas and their descriptions
-        """
-        yogas = {}
-        
-        # Check for Raj Yogas (combinations for power and authority)
-        raj_yogas = self._detect_raj_yogas()
-        if raj_yogas:
-            yogas['Raj Yogas'] = raj_yogas
-        
-        # Check for Dhana Yogas (combinations for wealth)
-        dhana_yogas = self._detect_dhana_yogas()
-        if dhana_yogas:
-            yogas['Dhana Yogas'] = dhana_yogas
-        
-        # Check for Pancha Mahapurusha Yogas
-        mahapurusha_yogas = self._detect_mahapurusha_yogas()
-        if mahapurusha_yogas:
-            yogas['Pancha Mahapurusha Yogas'] = mahapurusha_yogas
-        
-        # Check for Gajakesari Yoga
-        gajakesari_yoga = self._detect_gajakesari_yoga()
-        if gajakesari_yoga:
-            yogas['Gajakesari Yoga'] = gajakesari_yoga
-        
-        # Check for Budhaditya Yoga
-        budhaditya_yoga = self._detect_budhaditya_yoga()
-        if budhaditya_yoga:
-            yogas['Budhaditya Yoga'] = budhaditya_yoga
-        
-        # Check for Neechabhanga Raj Yoga
-        neechabhanga_yoga = self._detect_neechabhanga_yoga()
-        if neechabhanga_yoga:
-            yogas['Neechabhanga Raj Yoga'] = neechabhanga_yoga
-        
-        return yogas
-    
-    def _detect_raj_yogas(self):
-        """
-        Detect Raj Yogas (combinations for power and authority)
-        
-        Returns:
-            List of detected Raj Yogas with descriptions
-        """
-        raj_yogas = []
-        
-        # Get lords of houses
-        house_lords = self._get_house_lords()
-        
-        # Check for Raj Yoga: Lord of 9th and 10th houses conjunct
-        if self._are_planets_conjunct(house_lords.get('9'), house_lords.get('10')):
-            raj_yogas.append({
-                'name': '9th-10th Lord Conjunction',
-                'description': 'The lords of the 9th and 10th houses are conjunct, indicating success in career and good fortune.',
-                'strength': 'Strong'
-            })
-        
-        # Check for Raj Yoga: Lord of 1st and 9th houses conjunct
-        if self._are_planets_conjunct(house_lords.get('1'), house_lords.get('9')):
-            raj_yogas.append({
-                'name': '1st-9th Lord Conjunction',
-                'description': 'The lords of the 1st and 9th houses are conjunct, indicating good fortune and spiritual growth.',
-                'strength': 'Strong'
-            })
-        
-        # Check for Raj Yoga: Lord of 1st and 10th houses conjunct
-        if self._are_planets_conjunct(house_lords.get('1'), house_lords.get('10')):
-            raj_yogas.append({
-                'name': '1st-10th Lord Conjunction',
-                'description': 'The lords of the 1st and 10th houses are conjunct, indicating career success and leadership abilities.',
-                'strength': 'Strong'
-            })
-        
-        # Check for Raj Yoga: Lord of 5th and 9th houses conjunct
-        if self._are_planets_conjunct(house_lords.get('5'), house_lords.get('9')):
-            raj_yogas.append({
-                'name': '5th-9th Lord Conjunction',
-                'description': 'The lords of the 5th and 9th houses are conjunct, indicating good fortune, spiritual wisdom, and success in education.',
-                'strength': 'Strong'
-            })
-        
-        return raj_yogas
-    
-    def _detect_dhana_yogas(self):
-        """
-        Detect Dhana Yogas (combinations for wealth)
-        
-        Returns:
-            List of detected Dhana Yogas with descriptions
-        """
-        dhana_yogas = []
-        
-        # Get lords of houses
-        house_lords = self._get_house_lords()
-        
-        # Check for Dhana Yoga: Lord of 2nd and 11th houses conjunct
-        if self._are_planets_conjunct(house_lords.get('2'), house_lords.get('11')):
-            dhana_yogas.append({
-                'name': '2nd-11th Lord Conjunction',
-                'description': 'The lords of the 2nd and 11th houses are conjunct, indicating wealth accumulation and financial gains.',
-                'strength': 'Strong'
-            })
-        
-        # Check for Dhana Yoga: Lord of 1st and 11th houses conjunct
-        if self._are_planets_conjunct(house_lords.get('1'), house_lords.get('11')):
-            dhana_yogas.append({
-                'name': '1st-11th Lord Conjunction',
-                'description': 'The lords of the 1st and 11th houses are conjunct, indicating income and financial success.',
-                'strength': 'Strong'
-            })
-        
-        # Check for Dhana Yoga: Lord of 5th and 9th houses in 2nd house
-        if (house_lords.get('5') and house_lords.get('9') and 
-            self.planets[house_lords['5']]['house'] == '2' and 
-            self.planets[house_lords['9']]['house'] == '2'):
-            dhana_yogas.append({
-                'name': '5th-9th Lords in 2nd House',
-                'description': 'The lords of the 5th and 9th houses are in the 2nd house, indicating wealth through investments and good fortune.',
-                'strength': 'Strong'
-            })
-        
-        return dhana_yogas
-    
-    def _detect_mahapurusha_yogas(self):
-        """
-        Detect Pancha Mahapurusha Yogas
-        
-        Returns:
-            List of detected Mahapurusha Yogas with descriptions
-        """
-        mahapurusha_yogas = []
-        
-        # Ruchaka Yoga: Mars in own sign or exaltation and in a kendra house (1, 4, 7, 10)
-        if 'Mars' in self.planets:
-            mars = self.planets['Mars']
-            mars_sign = mars['sign']
-            mars_house = int(mars['house'])
+        # Calculate all antardasha periods
+        for i in range(9):
+            antardasha_index = (mahadasha_index + i) % 9
+            antardasha_planet = dasha_sequence[antardasha_index]['planet']
+            antardasha_years = dasha_sequence[antardasha_index]['years']
             
-            if ((mars_sign in ['Aries', 'Scorpio'] or mars_sign == 'Capricorn') and 
-                mars_house in [1, 4, 7, 10]):
-                mahapurusha_yogas.append({
-                    'name': 'Ruchaka Yoga',
-                    'description': 'Mars is in its own sign or exaltation and in a kendra house, indicating leadership abilities, courage, and physical strength.',
-                    'strength': 'Strong'
-                })
-        
-        # Bhadra Yoga: Mercury in own sign or exaltation and in a kendra house
-        if 'Mercury' in self.planets:
-            mercury = self.planets['Mercury']
-            mercury_sign = mercury['sign']
-            mercury_house = int(mercury['house'])
+            # Calculate proportion of the mahadasha
+            proportion = antardasha_years / 120
             
-            if ((mercury_sign in ['Gemini', 'Virgo'] or mercury_sign == 'Virgo') and 
-                mercury_house in [1, 4, 7, 10]):
-                mahapurusha_yogas.append({
-                    'name': 'Bhadra Yoga',
-                    'description': 'Mercury is in its own sign or exaltation and in a kendra house, indicating intelligence, communication skills, and business acumen.',
-                    'strength': 'Strong'
-                })
-        
-        # Hamsa Yoga: Jupiter in own sign or exaltation and in a kendra house
-        if 'Jupiter' in self.planets:
-            jupiter = self.planets['Jupiter']
-            jupiter_sign = jupiter['sign']
-            jupiter_house = int(jupiter['house'])
+            # Calculate days for this antardasha
+            antardasha_days = int(total_days * proportion)
             
-            if ((jupiter_sign in ['Sagittarius', 'Pisces'] or jupiter_sign == 'Cancer') and 
-                jupiter_house in [1, 4, 7, 10]):
-                mahapurusha_yogas.append({
-                    'name': 'Hamsa Yoga',
-                    'description': 'Jupiter is in its own sign or exaltation and in a kendra house, indicating wisdom, spirituality, and good fortune.',
-                    'strength': 'Strong'
-                })
-        
-        # Malavya Yoga: Venus in own sign or exaltation and in a kendra house
-        if 'Venus' in self.planets:
-            venus = self.planets['Venus']
-            venus_sign = venus['sign']
-            venus_house = int(venus['house'])
+            # Calculate end date
+            antardasha_end = current_date + relativedelta(days=antardasha_days)
             
-            if ((venus_sign in ['Taurus', 'Libra'] or venus_sign == 'Pisces') and 
-                venus_house in [1, 4, 7, 10]):
-                mahapurusha_yogas.append({
-                    'name': 'Malavya Yoga',
-                    'description': 'Venus is in its own sign or exaltation and in a kendra house, indicating beauty, artistic talents, and luxurious lifestyle.',
-                    'strength': 'Strong'
-                })
-        
-        # Sasa Yoga: Saturn in own sign or exaltation and in a kendra house
-        if 'Saturn' in self.planets:
-            saturn = self.planets['Saturn']
-            saturn_sign = saturn['sign']
-            saturn_house = int(saturn['house'])
+            # Ensure the last antardasha ends exactly at the mahadasha end date
+            if i == 8:
+                antardasha_end = end_date
             
-            if ((saturn_sign in ['Capricorn', 'Aquarius'] or saturn_sign == 'Libra') and 
-                saturn_house in [1, 4, 7, 10]):
-                mahapurusha_yogas.append({
-                    'name': 'Sasa Yoga',
-                    'description': 'Saturn is in its own sign or exaltation and in a kendra house, indicating discipline, longevity, and success through hard work.',
-                    'strength': 'Strong'
-                })
-        
-        return mahapurusha_yogas
-    
-    def _detect_gajakesari_yoga(self):
-        """
-        Detect Gajakesari Yoga
-        
-        Returns:
-            Dictionary with yoga details if detected, None otherwise
-        """
-        if 'Moon' in self.planets and 'Jupiter' in self.planets:
-            moon_house = int(self.planets['Moon']['house'])
-            jupiter_house = int(self.planets['Jupiter']['house'])
+            # Calculate duration in years, months, days
+            duration_days = (antardasha_end - current_date).days
+            years = duration_days // 365
+            months = (duration_days % 365) // 30
+            days = (duration_days % 365) % 30
             
-            # Gajakesari Yoga: Moon and Jupiter in kendras (1, 4, 7, 10) from each other
-            if abs(moon_house - jupiter_house) in [0, 3, 6, 9]:
-                return {
-                    'name': 'Gajakesari Yoga',
-                    'description': 'Moon and Jupiter are in kendras from each other, indicating good fortune, wisdom, and success in life.',
-                    'strength': 'Strong'
-                }
-        
-        return None
-    
-    def _detect_budhaditya_yoga(self):
-        """
-        Detect Budhaditya Yoga
-        
-        Returns:
-            Dictionary with yoga details if detected, None otherwise
-        """
-        if 'Sun' in self.planets and 'Mercury' in self.planets:
-            sun_house = int(self.planets['Sun']['house'])
-            mercury_house = int(self.planets['Mercury']['house'])
+            antardashas.append({
+                'planet': antardasha_planet,
+                'start_date': current_date.strftime('%Y-%m-%d'),
+                'end_date': antardasha_end.strftime('%Y-%m-%d'),
+                'duration': f"{years}y {months}m {days}d"
+            })
             
-            # Budhaditya Yoga: Sun and Mercury conjunct
-            if sun_house == mercury_house:
-                return {
-                    'name': 'Budhaditya Yoga',
-                    'description': 'Sun and Mercury are conjunct, indicating intelligence, communication skills, and success in education and career.',
-                    'strength': 'Strong'
-                }
+            current_date = antardasha_end
         
-        return None
-    
-    def _detect_neechabhanga_yoga(self):
-        """
-        Detect Neechabhanga Raj Yoga
-        
-        Returns:
-            Dictionary with yoga details if detected, None otherwise
-        """
-        neechabhanga_yogas = []
-        
-        # Check for debilitated planets
-        for planet_name, planet_data in self.planets.items():
-            if planet_data['dignity'] == 'Debilitated':
-                # Check if the lord of the sign is in a kendra or trikona house
-                sign_lord = self._get_sign_lord(planet_data['sign'])
-                if sign_lord in self.planets:
-                    sign_lord_house = int(self.planets[sign_lord]['house'])
-                    if sign_lord_house in [1, 4, 7, 10, 5, 9]:
-                        neechabhanga_yogas.append({
-                            'planet': planet_name,
-                            'description': f"{planet_name} is debilitated but the lord of the sign ({sign_lord}) is in a kendra or trikona house, cancelling the debilitation and creating Neechabhanga Raj Yoga."
-                        })
-        
-        if neechabhanga_yogas:
-            return {
-                'name': 'Neechabhanga Raj Yoga',
-                'planets': neechabhanga_yogas,
-                'description': 'Debilitated planets have their debilitation cancelled, turning weakness into strength.',
-                'strength': 'Moderate to Strong'
-            }
-        
-        return None
-    
+        return antardashas
+
     def _get_house_lords(self):
         """
         Get the lords of all houses
@@ -1193,481 +1035,6 @@ class VedicCalculator:
         
         return dwadasamsa
 
-    def _calculate_vimshottari_dasha(self):
-        """
-        Calculate Vimshottari Dasha periods
-        
-        Vimshottari Dasha is a 120-year predictive system based on the Moon's nakshatra
-        at birth. It divides life into planetary periods (mahadashas) and sub-periods (antardashas).
-        
-        Returns:
-            Dictionary with dasha periods and timings
-        """
-        # Vimshottari Dasha planet sequence and their periods in years
-        dasha_sequence = [
-            {'planet': 'Ketu', 'years': 7},
-            {'planet': 'Venus', 'years': 20},
-            {'planet': 'Sun', 'years': 6},
-            {'planet': 'Moon', 'years': 10},
-            {'planet': 'Mars', 'years': 7},
-            {'planet': 'Rahu', 'years': 18},
-            {'planet': 'Jupiter', 'years': 16},
-            {'planet': 'Saturn', 'years': 19},
-            {'planet': 'Mercury', 'years': 17}
-        ]
-        
-        # Total Vimshottari cycle is 120 years
-        total_years = 120
-        
-        # Get Moon's nakshatra and its portion
-        moon_longitude = self.planets['Moon']['longitude']
-        nakshatra_span = 360 / 27  # 13.33333...
-        nakshatra_index = int(moon_longitude / nakshatra_span)
-        moon_nakshatra = self.NAKSHATRAS[nakshatra_index]
-        
-        # Calculate position within nakshatra (0 to 1)
-        position_in_nakshatra = (moon_longitude % nakshatra_span) / nakshatra_span
-        
-        # Get lord of birth nakshatra
-        birth_lord = self.NAKSHATRA_LORDS[nakshatra_index]
-        
-        # Calculate remaining dasha years of birth lord
-        remaining_years = self.DASHA_YEARS[birth_lord] * (1 - position_in_nakshatra)
-        
-        # Calculate birth date
-        birth_date = self.date
-        
-        # Generate dasha periods
-        periods = []
-        current_date = birth_date
-        
-        # Start with birth lord
-        current_lord_index = list(self.DASHA_YEARS.keys()).index(birth_lord)
-        
-        # Add birth lord's remaining period
-        start_date = current_date
-        days_remaining = int(remaining_years * 365.25)
-        end_date = start_date + relativedelta(days=days_remaining)
-        
-        periods.append({
-            'planet': birth_lord,
-            'start_date': start_date.strftime('%Y-%m-%d'),
-            'end_date': end_date.strftime('%Y-%m-%d'),
-            'duration': f"{remaining_years:.2f} years",
-            'antardashas': self._calculate_antardashas(start_date, end_date, birth_lord)
-        })
-        
-        current_date = end_date
-        
-        # Add subsequent periods
-        for i in range(1, 9):  # 8 more planets after birth lord
-            next_lord_index = (current_lord_index + i) % 9
-            next_lord = list(self.DASHA_YEARS.keys())[next_lord_index]
-            years = self.DASHA_YEARS[next_lord]
-            
-            start_date = current_date
-            days = int(years * 365.25)
-            end_date = start_date + relativedelta(days=days)
-            
-            periods.append({
-                'planet': next_lord,
-                'start_date': start_date.strftime('%Y-%m-%d'),
-                'end_date': end_date.strftime('%Y-%m-%d'),
-                'duration': f"{years} years",
-                'antardashas': self._calculate_antardashas(start_date, end_date, next_lord)
-            })
-            
-            current_date = end_date
-        
-        return {
-            'birth_date': birth_date.strftime('%Y-%m-%d'),
-            'moon_nakshatra': moon_nakshatra,
-            'moon_nakshatra_lord': self.planets['Moon']['nakshatra_lord'],
-            'dasha_periods': periods
-        }
-    
-    def _calculate_antardashas(self, start_date, end_date, mahadasha_lord):
-        """
-        Calculate Antardasha (sub-periods) for a given Mahadasha
-        
-        Args:
-            start_date: Start date of the Mahadasha
-            end_date: End date of the Mahadasha
-            mahadasha_lord: Planet ruling the Mahadasha
-            
-        Returns:
-            List of Antardasha periods
-        """
-        # Vimshottari Dasha planet sequence and their periods in years
-        dasha_sequence = [
-            {'planet': 'Ketu', 'years': 7},
-            {'planet': 'Venus', 'years': 20},
-            {'planet': 'Sun', 'years': 6},
-            {'planet': 'Moon', 'years': 10},
-            {'planet': 'Mars', 'years': 7},
-            {'planet': 'Rahu', 'years': 18},
-            {'planet': 'Jupiter', 'years': 16},
-            {'planet': 'Saturn', 'years': 19},
-            {'planet': 'Mercury', 'years': 17}
-        ]
-        
-        # Find the mahadasha lord in the sequence
-        mahadasha_index = next((i for i, d in enumerate(dasha_sequence) if d['planet'] == mahadasha_lord), 0)
-        
-        # Calculate total duration of the mahadasha in days
-        total_days = (end_date - start_date).days
-        
-        # Initialize antardasha periods
-        antardashas = []
-        current_date = start_date
-        
-        # Calculate all antardasha periods
-        for i in range(9):
-            antardasha_index = (mahadasha_index + i) % 9
-            antardasha_planet = dasha_sequence[antardasha_index]['planet']
-            antardasha_years = dasha_sequence[antardasha_index]['years']
-            
-            # Calculate proportion of the mahadasha
-            proportion = antardasha_years / 120
-            
-            # Calculate days for this antardasha
-            antardasha_days = int(total_days * proportion)
-            
-            # Calculate end date
-            antardasha_end = current_date + relativedelta(days=antardasha_days)
-            
-            # Ensure the last antardasha ends exactly at the mahadasha end date
-            if i == 8:
-                antardasha_end = end_date
-            
-            # Calculate duration in years, months, days
-            duration_days = (antardasha_end - current_date).days
-            years = duration_days // 365
-            months = (duration_days % 365) // 30
-            days = (duration_days % 365) % 30
-            
-            antardashas.append({
-                'planet': antardasha_planet,
-                'start_date': current_date.strftime('%Y-%m-%d'),
-                'end_date': antardasha_end.strftime('%Y-%m-%d'),
-                'duration': f"{years}y {months}m {days}d"
-            })
-            
-            current_date = antardasha_end
-        
-        return antardashas
-
-    def _calculate_drekkana(self):
-        """
-        Calculate Drekkana chart (D3)
-        
-        Returns:
-            Dictionary with planetary positions in Drekkana
-        """
-        drekkana = {}
-        
-        for planet_name, planet_data in self.planets.items():
-            # Skip special points
-            if planet_name in ['Ketu']:
-                continue
-                
-            # Get the longitude
-            longitude = planet_data['longitude']
-            
-            # Calculate Drekkana position (3rd division)
-            # Each sign is divided into 3 equal parts of 10° each
-            sign_num = int(longitude / 30)
-            remainder = longitude % 30
-            drekkana_division = int(remainder / (30/3))
-            
-            # Calculate the drekkana sign
-            # For fiery signs (Aries, Leo, Sagittarius): 1st = own sign, 2nd = Leo, 3rd = Sagittarius
-            # For earthy signs (Taurus, Virgo, Capricorn): 1st = own sign, 2nd = Virgo, 3rd = Capricorn
-            # For airy signs (Gemini, Libra, Aquarius): 1st = own sign, 2nd = Libra, 3rd = Aquarius
-            # For watery signs (Cancer, Scorpio, Pisces): 1st = own sign, 2nd = Scorpio, 3rd = Pisces
-            element = sign_num % 4  # 0=Fire, 1=Earth, 2=Air, 3=Water
-            
-            if drekkana_division == 0:
-                drekkana_sign_num = sign_num
-            elif drekkana_division == 1:
-                if element == 0:  # Fire
-                    drekkana_sign_num = 4  # Leo
-                elif element == 1:  # Earth
-                    drekkana_sign_num = 5  # Virgo
-                elif element == 2:  # Air
-                    drekkana_sign_num = 6  # Libra
-                else:  # Water
-                    drekkana_sign_num = 7  # Scorpio
-            elif drekkana_division == 2:
-                if element == 0:  # Fire
-                    drekkana_sign_num = 8  # Sagittarius
-                elif element == 1:  # Earth
-                    drekkana_sign_num = 9  # Capricorn
-                elif element == 2:  # Air
-                    drekkana_sign_num = 10  # Aquarius
-                else:  # Water
-                    drekkana_sign_num = 11  # Pisces
-            
-            # Calculate the exact longitude in the drekkana sign
-            drekkana_longitude = drekkana_sign_num * 30 + (remainder % (30/3)) * 3
-            
-            # Create a copy of the planet data with updated longitude and sign
-            drekkana_data = planet_data.copy()
-            drekkana_data['longitude'] = drekkana_longitude
-            drekkana_data['sign'] = self.ZODIAC_SIGNS[drekkana_sign_num]
-            drekkana_data['house'] = self._get_house_number(drekkana_longitude)
-            
-            drekkana[planet_name] = drekkana_data
-        
-        # Calculate Ketu position (opposite to Rahu)
-        if 'Rahu' in drekkana:
-            rahu_longitude = drekkana['Rahu']['longitude']
-            ketu_longitude = (rahu_longitude + 180) % 360
-            ketu_sign_num = int(ketu_longitude / 30)
-            
-            drekkana['Ketu'] = {
-                'longitude': ketu_longitude,
-                'sign': self.ZODIAC_SIGNS[ketu_sign_num],
-                'house': self._get_house_number(ketu_longitude),
-                'isRetrograde': drekkana['Rahu']['isRetrograde']
-            }
-        
-        return drekkana
-    
-    def _calculate_chaturthamsa(self):
-        """
-        Calculate Chaturthamsa chart (D4)
-        
-        Returns:
-            Dictionary with planetary positions in Chaturthamsa
-        """
-        chaturthamsa = {}
-        
-        for planet_name, planet_data in self.planets.items():
-            # Skip special points
-            if planet_name in ['Ketu']:
-                continue
-                
-            # Get the longitude
-            longitude = planet_data['longitude']
-            
-            # Calculate Chaturthamsa position (4th division)
-            # Each sign is divided into 4 equal parts of 7°30' each
-            sign_num = int(longitude / 30)
-            remainder = longitude % 30
-            chaturthamsa_division = int(remainder / (30/4))
-            
-            # Calculate the chaturthamsa sign
-            # For movable signs (Aries, Cancer, Libra, Capricorn): starts with own sign
-            # For fixed signs (Taurus, Leo, Scorpio, Aquarius): starts with 9th from own sign
-            # For dual signs (Gemini, Virgo, Sagittarius, Pisces): starts with 5th from own sign
-            sign_type = sign_num % 3  # 0=Movable, 1=Fixed, 2=Dual
-            
-            if sign_type == 0:  # Movable signs
-                chaturthamsa_sign_num = (sign_num + chaturthamsa_division) % 12
-            elif sign_type == 1:  # Fixed signs
-                chaturthamsa_sign_num = (sign_num + 8 + chaturthamsa_division) % 12
-            else:  # Dual signs
-                chaturthamsa_sign_num = (sign_num + 4 + chaturthamsa_division) % 12
-            
-            # Calculate the exact longitude in the chaturthamsa sign
-            chaturthamsa_longitude = chaturthamsa_sign_num * 30 + (remainder % (30/4)) * 4
-            
-            # Create a copy of the planet data with updated longitude and sign
-            chaturthamsa_data = planet_data.copy()
-            chaturthamsa_data['longitude'] = chaturthamsa_longitude
-            chaturthamsa_data['sign'] = self.ZODIAC_SIGNS[chaturthamsa_sign_num]
-            chaturthamsa_data['house'] = self._get_house_number(chaturthamsa_longitude)
-            
-            chaturthamsa[planet_name] = chaturthamsa_data
-        
-        # Calculate Ketu position (opposite to Rahu)
-        if 'Rahu' in chaturthamsa:
-            rahu_longitude = chaturthamsa['Rahu']['longitude']
-            ketu_longitude = (rahu_longitude + 180) % 360
-            ketu_sign_num = int(ketu_longitude / 30)
-            
-            chaturthamsa['Ketu'] = {
-                'longitude': ketu_longitude,
-                'sign': self.ZODIAC_SIGNS[ketu_sign_num],
-                'house': self._get_house_number(ketu_longitude),
-                'isRetrograde': chaturthamsa['Rahu']['isRetrograde']
-            }
-        
-        return chaturthamsa
-    
-    def _calculate_saptamsa(self):
-        """
-        Calculate Saptamsa chart (D7)
-        
-        Returns:
-            Dictionary with planetary positions in Saptamsa
-        """
-        saptamsa = {}
-        
-        for planet_name, planet_data in self.planets.items():
-            # Skip special points
-            if planet_name in ['Ketu']:
-                continue
-                
-            # Get the longitude
-            longitude = planet_data['longitude']
-            
-            # Calculate Saptamsa position (7th division)
-            # Each sign is divided into 7 equal parts of 4°17'8.57" each
-            sign_num = int(longitude / 30)
-            remainder = longitude % 30
-            saptamsa_division = int(remainder / (30/7))
-            
-            # Calculate the saptamsa sign
-            # For odd signs: starts with own sign
-            # For even signs: starts with 7th from own sign
-            if sign_num % 2 == 0:  # Odd signs (0-based index)
-                saptamsa_sign_num = (sign_num + saptamsa_division) % 12
-            else:  # Even signs (0-based index)
-                saptamsa_sign_num = (sign_num + 6 + saptamsa_division) % 12
-            
-            # Calculate the exact longitude in the saptamsa sign
-            saptamsa_longitude = saptamsa_sign_num * 30 + (remainder % (30/7)) * 7
-            
-            # Create a copy of the planet data with updated longitude and sign
-            saptamsa_data = planet_data.copy()
-            saptamsa_data['longitude'] = saptamsa_longitude
-            saptamsa_data['sign'] = self.ZODIAC_SIGNS[saptamsa_sign_num]
-            saptamsa_data['house'] = self._get_house_number(saptamsa_longitude)
-            
-            saptamsa[planet_name] = saptamsa_data
-        
-        # Calculate Ketu position (opposite to Rahu)
-        if 'Rahu' in saptamsa:
-            rahu_longitude = saptamsa['Rahu']['longitude']
-            ketu_longitude = (rahu_longitude + 180) % 360
-            ketu_sign_num = int(ketu_longitude / 30)
-            
-            saptamsa['Ketu'] = {
-                'longitude': ketu_longitude,
-                'sign': self.ZODIAC_SIGNS[ketu_sign_num],
-                'house': self._get_house_number(ketu_longitude),
-                'isRetrograde': saptamsa['Rahu']['isRetrograde']
-            }
-        
-        return saptamsa
-    
-    def _calculate_dasamsa(self):
-        """
-        Calculate Dasamsa chart (D10)
-        
-        Returns:
-            Dictionary with planetary positions in Dasamsa
-        """
-        dasamsa = {}
-        
-        for planet_name, planet_data in self.planets.items():
-            # Skip special points
-            if planet_name in ['Ketu']:
-                continue
-                
-            # Get the longitude
-            longitude = planet_data['longitude']
-            
-            # Calculate Dasamsa position (10th division)
-            # Each sign is divided into 10 equal parts of 3° each
-            sign_num = int(longitude / 30)
-            remainder = longitude % 30
-            dasamsa_division = int(remainder / (30/10))
-            
-            # Calculate the dasamsa sign
-            # For odd signs: starts with own sign
-            # For even signs: starts with 9th from own sign
-            if sign_num % 2 == 0:  # Odd signs (0-based index)
-                dasamsa_sign_num = (sign_num + dasamsa_division) % 12
-            else:  # Even signs (0-based index)
-                dasamsa_sign_num = (sign_num + 8 + dasamsa_division) % 12
-            
-            # Calculate the exact longitude in the dasamsa sign
-            dasamsa_longitude = dasamsa_sign_num * 30 + (remainder % (30/10)) * 10
-            
-            # Create a copy of the planet data with updated longitude and sign
-            dasamsa_data = planet_data.copy()
-            dasamsa_data['longitude'] = dasamsa_longitude
-            dasamsa_data['sign'] = self.ZODIAC_SIGNS[dasamsa_sign_num]
-            dasamsa_data['house'] = self._get_house_number(dasamsa_longitude)
-            
-            dasamsa[planet_name] = dasamsa_data
-        
-        # Calculate Ketu position (opposite to Rahu)
-        if 'Rahu' in dasamsa:
-            rahu_longitude = dasamsa['Rahu']['longitude']
-            ketu_longitude = (rahu_longitude + 180) % 360
-            ketu_sign_num = int(ketu_longitude / 30)
-            
-            dasamsa['Ketu'] = {
-                'longitude': ketu_longitude,
-                'sign': self.ZODIAC_SIGNS[ketu_sign_num],
-                'house': self._get_house_number(ketu_longitude),
-                'isRetrograde': dasamsa['Rahu']['isRetrograde']
-            }
-        
-        return dasamsa
-    
-    def _calculate_shodasamsa(self):
-        """
-        Calculate Shodasamsa chart (D16)
-        
-        Returns:
-            Dictionary with planetary positions in Shodasamsa
-        """
-        shodasamsa = {}
-        
-        for planet_name, planet_data in self.planets.items():
-            # Skip special points
-            if planet_name in ['Ketu']:
-                continue
-                
-            # Get the longitude
-            longitude = planet_data['longitude']
-            
-            # Calculate Shodasamsa position (16th division)
-            # Each sign is divided into 16 equal parts of 1°52'30" each
-            sign_num = int(longitude / 30)
-            remainder = longitude % 30
-            shodasamsa_division = int(remainder / (30/16))
-            
-            # Determine the starting sign based on the sign
-            # For fiery signs: Aries to Pisces
-            # For earthy signs: Taurus to Aries
-            # For airy signs: Gemini to Taurus
-            # For watery signs: Cancer to Gemini
-            element = sign_num % 4  # 0=Fire, 1=Earth, 2=Air, 3=Water
-            
-            shodasamsa_sign_num = (element + shodasamsa_division) % 12
-            
-            # Calculate the exact longitude in the shodasamsa sign
-            shodasamsa_longitude = shodasamsa_sign_num * 30 + (remainder % (30/16)) * 16
-            
-            # Create a copy of the planet data with updated longitude and sign
-            shodasamsa_data = planet_data.copy()
-            shodasamsa_data['longitude'] = shodasamsa_longitude
-            shodasamsa_data['sign'] = self.ZODIAC_SIGNS[shodasamsa_sign_num]
-            shodasamsa_data['house'] = self._get_house_number(shodasamsa_longitude)
-            
-            shodasamsa[planet_name] = shodasamsa_data
-        
-        # Calculate Ketu position (opposite to Rahu)
-        if 'Rahu' in shodasamsa:
-            rahu_longitude = shodasamsa['Rahu']['longitude']
-            ketu_longitude = (rahu_longitude + 180) % 360
-            ketu_sign_num = int(ketu_longitude / 30)
-            
-            shodasamsa['Ketu'] = {
-                'longitude': ketu_longitude,
-                'sign': self.ZODIAC_SIGNS[ketu_sign_num],
-                'house': self._get_house_number(ketu_longitude),
-                'isRetrograde': shodasamsa['Rahu']['isRetrograde']
-            }
-        
-        return shodasamsa
-    
     def _calculate_vimshamsa(self):
         """
         Calculate Vimshamsa chart (D20)
@@ -2269,3 +1636,521 @@ class VedicCalculator:
                 
                 # Store composite relationship
                 self.planets[planet1]['relationships'][planet2]['composite'] = composite
+
+    def detect_yogas(self):
+        """
+        Detect important yogas in the chart
+        
+        Returns:
+            Dictionary with detected yogas and their descriptions
+        """
+        yogas = {}
+        
+        # Check for Raj Yogas (combinations for power and authority)
+        raj_yogas = self._detect_raj_yogas()
+        if raj_yogas:
+            yogas['Raj Yogas'] = raj_yogas
+        
+        # Check for Dhana Yogas (combinations for wealth)
+        dhana_yogas = self._detect_dhana_yogas()
+        if dhana_yogas:
+            yogas['Dhana Yogas'] = dhana_yogas
+        
+        # Check for Pancha Mahapurusha Yogas
+        mahapurusha_yogas = self._detect_mahapurusha_yogas()
+        if mahapurusha_yogas:
+            yogas['Pancha Mahapurusha Yogas'] = mahapurusha_yogas
+        
+        # Check for Gajakesari Yoga
+        gajakesari_yoga = self._detect_gajakesari_yoga()
+        if gajakesari_yoga:
+            yogas['Gajakesari Yoga'] = gajakesari_yoga
+        
+        # Check for Budhaditya Yoga
+        budhaditya_yoga = self._detect_budhaditya_yoga()
+        if budhaditya_yoga:
+            yogas['Budhaditya Yoga'] = budhaditya_yoga
+        
+        # Check for Neechabhanga Raj Yoga
+        neechabhanga_yoga = self._detect_neechabhanga_yoga()
+        if neechabhanga_yoga:
+            yogas['Neechabhanga Raj Yoga'] = neechabhanga_yoga
+        
+        return yogas
+    
+    def _detect_raj_yogas(self):
+        """
+        Detect Raj Yogas (combinations for power and authority)
+        
+        Returns:
+            List of detected Raj Yogas with descriptions
+        """
+        raj_yogas = []
+        
+        # Get lords of houses
+        house_lords = self._get_house_lords()
+        
+        # Check for Raj Yoga: Lord of 9th and 10th houses conjunct
+        if self._are_planets_conjunct(house_lords.get('9'), house_lords.get('10')):
+            raj_yogas.append({
+                'name': '9th-10th Lord Conjunction',
+                'description': 'The lords of the 9th and 10th houses are conjunct, indicating success in career and good fortune.',
+                'strength': 'Strong'
+            })
+        
+        # Check for Raj Yoga: Lord of 1st and 9th houses conjunct
+        if self._are_planets_conjunct(house_lords.get('1'), house_lords.get('9')):
+            raj_yogas.append({
+                'name': '1st-9th Lord Conjunction',
+                'description': 'The lords of the 1st and 9th houses are conjunct, indicating good fortune and spiritual growth.',
+                'strength': 'Strong'
+            })
+        
+        # Check for Raj Yoga: Lord of 1st and 10th houses conjunct
+        if self._are_planets_conjunct(house_lords.get('1'), house_lords.get('10')):
+            raj_yogas.append({
+                'name': '1st-10th Lord Conjunction',
+                'description': 'The lords of the 1st and 10th houses are conjunct, indicating career success and leadership abilities.',
+                'strength': 'Strong'
+            })
+        
+        # Check for Raj Yoga: Lord of 5th and 9th houses conjunct
+        if self._are_planets_conjunct(house_lords.get('5'), house_lords.get('9')):
+            raj_yogas.append({
+                'name': '5th-9th Lord Conjunction',
+                'description': 'The lords of the 5th and 9th houses are conjunct, indicating good fortune, spiritual wisdom, and success in education.',
+                'strength': 'Strong'
+            })
+        
+        return raj_yogas
+    
+    def _detect_dhana_yogas(self):
+        """
+        Detect Dhana Yogas (combinations for wealth)
+        
+        Returns:
+            List of detected Dhana Yogas with descriptions
+        """
+        dhana_yogas = []
+        
+        # Get lords of houses
+        house_lords = self._get_house_lords()
+        
+        # Check for Dhana Yoga: Lord of 2nd and 11th houses conjunct
+        if self._are_planets_conjunct(house_lords.get('2'), house_lords.get('11')):
+            dhana_yogas.append({
+                'name': '2nd-11th Lord Conjunction',
+                'description': 'The lords of the 2nd and 11th houses are conjunct, indicating wealth accumulation and financial gains.',
+                'strength': 'Strong'
+            })
+        
+        # Check for Dhana Yoga: Lord of 1st and 11th houses conjunct
+        if self._are_planets_conjunct(house_lords.get('1'), house_lords.get('11')):
+            dhana_yogas.append({
+                'name': '1st-11th Lord Conjunction',
+                'description': 'The lords of the 1st and 11th houses are conjunct, indicating income and financial success.',
+                'strength': 'Strong'
+            })
+        
+        # Check for Dhana Yoga: Lord of 5th and 9th houses in 2nd house
+        if (house_lords.get('5') and house_lords.get('9') and 
+            self.planets[house_lords['5']]['house'] == '2' and 
+            self.planets[house_lords['9']]['house'] == '2'):
+            dhana_yogas.append({
+                'name': '5th-9th Lords in 2nd House',
+                'description': 'The lords of the 5th and 9th houses are in the 2nd house, indicating wealth through investments and good fortune.',
+                'strength': 'Strong'
+            })
+        
+        return dhana_yogas
+    
+    def _detect_mahapurusha_yogas(self):
+        """
+        Detect Pancha Mahapurusha Yogas
+        
+        Returns:
+            List of detected Mahapurusha Yogas with descriptions
+        """
+        mahapurusha_yogas = []
+        
+        # Ruchaka Yoga: Mars in own sign or exaltation and in a kendra house (1, 4, 7, 10)
+        if 'Mars' in self.planets:
+            mars = self.planets['Mars']
+            mars_sign = mars['sign']
+            mars_house = int(mars['house'])
+            
+            if ((mars_sign in ['Aries', 'Scorpio'] or mars_sign == 'Capricorn') and 
+                mars_house in [1, 4, 7, 10]):
+                mahapurusha_yogas.append({
+                    'name': 'Ruchaka Yoga',
+                    'description': 'Mars is in its own sign or exaltation and in a kendra house, indicating leadership abilities, courage, and physical strength.',
+                    'strength': 'Strong'
+                })
+        
+        # Bhadra Yoga: Mercury in own sign or exaltation and in a kendra house
+        if 'Mercury' in self.planets:
+            mercury = self.planets['Mercury']
+            mercury_sign = mercury['sign']
+            mercury_house = int(mercury['house'])
+            
+            if ((mercury_sign in ['Gemini', 'Virgo'] or mercury_sign == 'Virgo') and 
+                mercury_house in [1, 4, 7, 10]):
+                mahapurusha_yogas.append({
+                    'name': 'Bhadra Yoga',
+                    'description': 'Mercury is in its own sign or exaltation and in a kendra house, indicating intelligence, communication skills, and business acumen.',
+                    'strength': 'Strong'
+                })
+        
+        # Hamsa Yoga: Jupiter in own sign or exaltation and in a kendra house
+        if 'Jupiter' in self.planets:
+            jupiter = self.planets['Jupiter']
+            jupiter_sign = jupiter['sign']
+            jupiter_house = int(jupiter['house'])
+            
+            if ((jupiter_sign in ['Sagittarius', 'Pisces'] or jupiter_sign == 'Cancer') and 
+                jupiter_house in [1, 4, 7, 10]):
+                mahapurusha_yogas.append({
+                    'name': 'Hamsa Yoga',
+                    'description': 'Jupiter is in its own sign or exaltation and in a kendra house, indicating wisdom, spirituality, and good fortune.',
+                    'strength': 'Strong'
+                })
+        
+        # Malavya Yoga: Venus in own sign or exaltation and in a kendra house
+        if 'Venus' in self.planets:
+            venus = self.planets['Venus']
+            venus_sign = venus['sign']
+            venus_house = int(venus['house'])
+            
+            if ((venus_sign in ['Taurus', 'Libra'] or venus_sign == 'Pisces') and 
+                venus_house in [1, 4, 7, 10]):
+                mahapurusha_yogas.append({
+                    'name': 'Malavya Yoga',
+                    'description': 'Venus is in its own sign or exaltation and in a kendra house, indicating beauty, artistic talents, and luxurious lifestyle.',
+                    'strength': 'Strong'
+                })
+        
+        # Sasa Yoga: Saturn in own sign or exaltation and in a kendra house
+        if 'Saturn' in self.planets:
+            saturn = self.planets['Saturn']
+            saturn_sign = saturn['sign']
+            saturn_house = int(saturn['house'])
+            
+            if ((saturn_sign in ['Capricorn', 'Aquarius'] or saturn_sign == 'Libra') and 
+                saturn_house in [1, 4, 7, 10]):
+                mahapurusha_yogas.append({
+                    'name': 'Sasa Yoga',
+                    'description': 'Saturn is in its own sign or exaltation and in a kendra house, indicating discipline, longevity, and success through hard work.',
+                    'strength': 'Strong'
+                })
+        
+        return mahapurusha_yogas
+    
+    def _detect_gajakesari_yoga(self):
+        """
+        Detect Gajakesari Yoga
+        
+        Returns:
+            Dictionary with yoga details if detected, None otherwise
+        """
+        if 'Moon' in self.planets and 'Jupiter' in self.planets:
+            moon_house = int(self.planets['Moon']['house'])
+            jupiter_house = int(self.planets['Jupiter']['house'])
+            
+            # Gajakesari Yoga: Moon and Jupiter in kendras (1, 4, 7, 10) from each other
+            if abs(moon_house - jupiter_house) in [0, 3, 6, 9]:
+                return {
+                    'name': 'Gajakesari Yoga',
+                    'description': 'Moon and Jupiter are in kendras from each other, indicating good fortune, wisdom, and success in life.',
+                    'strength': 'Strong'
+                }
+        
+        return None
+    
+    def _detect_budhaditya_yoga(self):
+        """
+        Detect Budhaditya Yoga
+        
+        Returns:
+            Dictionary with yoga details if detected, None otherwise
+        """
+        if 'Sun' in self.planets and 'Mercury' in self.planets:
+            sun_house = int(self.planets['Sun']['house'])
+            mercury_house = int(self.planets['Mercury']['house'])
+            
+            # Budhaditya Yoga: Sun and Mercury conjunct
+            if sun_house == mercury_house:
+                return {
+                    'name': 'Budhaditya Yoga',
+                    'description': 'Sun and Mercury are conjunct, indicating intelligence, communication skills, and success in education and career.',
+                    'strength': 'Strong'
+                }
+        
+        return None
+    
+    def _detect_neechabhanga_yoga(self):
+        """
+        Detect Neechabhanga Raj Yoga
+        
+        Returns:
+            Dictionary with yoga details if detected, None otherwise
+        """
+        neechabhanga_yogas = []
+        
+        # Check for debilitated planets
+        for planet_name, planet_data in self.planets.items():
+            if planet_data['dignity'] == 'Debilitated':
+                # Check if the lord of the sign is in a kendra or trikona house
+                sign_lord = self._get_sign_lord(planet_data['sign'])
+                if sign_lord in self.planets:
+                    sign_lord_house = int(self.planets[sign_lord]['house'])
+                    if sign_lord_house in [1, 4, 7, 10, 5, 9]:
+                        neechabhanga_yogas.append({
+                            'planet': planet_name,
+                            'description': f"{planet_name} is debilitated but the lord of the sign ({sign_lord}) is in a kendra or trikona house, cancelling the debilitation and creating Neechabhanga Raj Yoga."
+                        })
+        
+        if neechabhanga_yogas:
+            return {
+                'name': 'Neechabhanga Raj Yoga',
+                'planets': neechabhanga_yogas,
+                'description': 'Debilitated planets have their debilitation cancelled, turning weakness into strength.',
+                'strength': 'Moderate to Strong'
+            }
+        
+        return None
+    
+    def calculate_panchang(self):
+        """
+        Calculate Panchang (five limbs of the day) with high precision
+        
+        Returns:
+            Dictionary with panchang information
+        """
+        # Calculate tithi (lunar day)
+        sun_lon = self.planets['Sun']['longitude']
+        moon_lon = self.planets['Moon']['longitude']
+        
+        # Tithi is the difference between Moon and Sun longitudes
+        tithi_lon = (moon_lon - sun_lon) % 360
+        tithi_num = int(tithi_lon / 12) + 1  # Each tithi is 12 degrees
+        
+        # Determine tithi name
+        if tithi_num <= 15:
+            tithi_phase = "Shukla"  # Bright half
+            tithi_day = tithi_num
+        else:
+            tithi_phase = "Krishna"  # Dark half
+            tithi_day = tithi_num - 15
+        
+        tithi = f"{tithi_phase} {tithi_day}"
+        
+        # Calculate nakshatra (lunar mansion)
+        moon_nakshatra = self.planets['Moon']['nakshatra']
+        
+        # Calculate yoga (combination of Sun and Moon)
+        yoga_lon = (sun_lon + moon_lon) % 360
+        yoga_num = int(yoga_lon / (360/27))
+        
+        # Yoga names
+        yoga_names = [
+            "Vishkumbha", "Preeti", "Ayushman", "Saubhagya", "Shobhana",
+            "Atiganda", "Sukarma", "Dhriti", "Shula", "Ganda",
+            "Vriddhi", "Dhruva", "Vyaghata", "Harshana", "Vajra",
+            "Siddhi", "Vyatipata", "Variyan", "Parigha", "Shiva",
+            "Siddha", "Sadhya", "Shubha", "Shukla", "Brahma",
+            "Indra", "Vaidhriti"
+        ]
+        
+        yoga = yoga_names[yoga_num]
+        
+        # Calculate karana (half of tithi)
+        karana_num = int(tithi_lon / 6) % 11  # Each karana is 6 degrees
+        
+        # Karana names
+        karana_names = [
+            "Bava", "Balava", "Kaulava", "Taitila", "Gara",
+            "Vanija", "Vishti", "Bava", "Balava", "Kaulava", "Taitila"
+        ]
+        
+        karana = karana_names[karana_num]
+        
+        # Calculate weekday
+        weekday_num = int(self.jd + 1.5) % 7
+        weekday_names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        weekday = weekday_names[weekday_num]
+        
+        return {
+            'tithi': tithi,
+            'nakshatra': moon_nakshatra,
+            'yoga': yoga,
+            'karana': karana,
+            'weekday': weekday
+        }
+
+    def calculate_divisional_charts(self):
+        """
+        Calculate divisional charts (Varga) for planets
+        
+        Returns:
+            Dictionary with divisional chart data
+        """
+        # We'll implement basic divisional charts: D9 (Navamsa) and D12 (Dwadasamsa)
+        divisional_charts = {
+            'D9': self._calculate_navamsa(),
+            'D12': self._calculate_dwadasamsa()
+        }
+        
+        return divisional_charts
+    
+    def _calculate_navamsa(self):
+        """
+        Calculate Navamsa (D9) chart
+        
+        Returns:
+            Dictionary with planet positions in Navamsa chart
+        """
+        navamsa_positions = {}
+        
+        # Calculate Navamsa positions for each planet
+        for planet, data in self.planets.items():
+            longitude = data['longitude']
+            
+            # Calculate Navamsa position (each Navamsa is 3°20')
+            navamsa_span = 3 + (1/3)  # 3°20' in decimal
+            
+            # Get the sign of the planet
+            sign_num = int(longitude / 30)
+            sign = self.ZODIAC_SIGNS[sign_num]
+            
+            # Calculate position within the sign
+            position_in_sign = longitude % 30
+            
+            # Calculate Navamsa number (0-8)
+            navamsa_num = int(position_in_sign / navamsa_span)
+            
+            # Determine Navamsa sign based on planet's sign and navamsa number
+            # For fire signs (Aries, Leo, Sagittarius): 0=Aries, 1=Taurus, etc.
+            # For earth signs (Taurus, Virgo, Capricorn): 0=Capricorn, 1=Aquarius, etc.
+            # For air signs (Gemini, Libra, Aquarius): 0=Libra, 1=Scorpio, etc.
+            # For water signs (Cancer, Scorpio, Pisces): 0=Cancer, 1=Leo, etc.
+            
+            element = sign_num % 4  # 0=fire, 1=earth, 2=air, 3=water
+            
+            if element == 0:  # Fire signs
+                navamsa_sign_num = navamsa_num % 12
+            elif element == 1:  # Earth signs
+                navamsa_sign_num = (navamsa_num + 9) % 12
+            elif element == 2:  # Air signs
+                navamsa_sign_num = (navamsa_num + 6) % 12
+            else:  # Water signs
+                navamsa_sign_num = (navamsa_num + 3) % 12
+            
+            navamsa_sign = self.ZODIAC_SIGNS[navamsa_sign_num]
+            
+            # Store the Navamsa position
+            navamsa_positions[planet] = {
+                'sign': navamsa_sign,
+                'sign_num': navamsa_sign_num,
+                'longitude': navamsa_sign_num * 30 + (position_in_sign % navamsa_span) * 9
+            }
+        
+        return navamsa_positions
+    
+    def _calculate_dwadasamsa(self):
+        """
+        Calculate Dwadasamsa (D12) chart
+        
+        Returns:
+            Dictionary with planet positions in Dwadasamsa chart
+        """
+        dwadasamsa_positions = {}
+        
+        # Calculate Dwadasamsa positions for each planet
+        for planet, data in self.planets.items():
+            longitude = data['longitude']
+            
+            # Calculate Dwadasamsa position (each Dwadasamsa is 2°30')
+            dwadasamsa_span = 2.5  # 2°30' in decimal
+            
+            # Get the sign of the planet
+            sign_num = int(longitude / 30)
+            
+            # Calculate position within the sign
+            position_in_sign = longitude % 30
+            
+            # Calculate Dwadasamsa number (0-11)
+            dwadasamsa_num = int(position_in_sign / dwadasamsa_span)
+            
+            # Determine Dwadasamsa sign
+            # For each sign, the first Dwadasamsa is the same sign, and then proceeds in zodiacal order
+            dwadasamsa_sign_num = (sign_num + dwadasamsa_num) % 12
+            dwadasamsa_sign = self.ZODIAC_SIGNS[dwadasamsa_sign_num]
+            
+            # Store the Dwadasamsa position
+            dwadasamsa_positions[planet] = {
+                'sign': dwadasamsa_sign,
+                'sign_num': dwadasamsa_sign_num,
+                'longitude': dwadasamsa_sign_num * 30 + (position_in_sign % dwadasamsa_span) * 12
+            }
+        
+        return dwadasamsa_positions
+
+    def calculate_shadbala(self):
+        """
+        Calculate Shadbala (planetary strengths) for all planets
+        
+        Returns:
+            Dictionary with Shadbala data for all planets
+        """
+        # Initialize Shadbala calculator
+        shadbala_calculator = ShadbalaCalculator(self)
+        
+        # Calculate Shadbala for all planets
+        shadbala_results = shadbala_calculator.calculate_all_shadbalas()
+        
+        return shadbala_results
+    
+    def calculate(self):
+        """
+        Calculate all astrological data
+        
+        Returns:
+            Dictionary with all calculated data
+        """
+        # Calculate planetary positions
+        self._calculate_planets()
+        
+        # Calculate houses
+        self._calculate_houses()
+        
+        # Calculate special points
+        self._calculate_special_points()
+        
+        # Calculate aspects
+        self._calculate_aspects()
+        
+        # Calculate Vimshottari Dasha
+        dasha_data = self._calculate_dasha()
+        
+        # Calculate Ashtakavarga
+        ashtakavarga_data = self.calculate_ashtakavarga()
+        
+        # Calculate divisional charts
+        divisional_charts = self.calculate_divisional_charts()
+        
+        # Calculate Shadbala
+        shadbala_data = self.calculate_shadbala()
+        
+        # Prepare result
+        result = {
+            'planets': self.planets,
+            'houses': self.houses,
+            'special_points': self.special_points,
+            'aspects': self.aspects,
+            'dashas': dasha_data,
+            'ashtakavarga': ashtakavarga_data,
+            'divisional_charts': divisional_charts,
+            'shadbala': shadbala_data
+        }
+        
+        return result

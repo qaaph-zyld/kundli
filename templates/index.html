@@ -95,11 +95,117 @@
         .test-profile-dropdown {
             margin-bottom: 15px;
         }
+        
+        /* Divisional Charts Styling */
+        .divisional-tabs {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            margin-bottom: 15px;
+        }
+        
+        .divisional-tab {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 10px 16px;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+        
+        .divisional-tab:hover {
+            background-color: #ddd;
+        }
+        
+        .divisional-tab.active {
+            background-color: #6c5ce7;
+            color: white;
+        }
+        
+        .divisional-content {
+            display: none;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-top: none;
+        }
+        
+        .divisional-content.active {
+            display: block;
+        }
+        
+        /* Yogas Styling */
+        .yoga-category {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .yoga-category-header {
+            background-color: #6c5ce7;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+        }
+        
+        .yoga-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .yoga-item:last-child {
+            border-bottom: none;
+        }
+        
+        .yoga-name {
+            font-weight: bold;
+            color: #2d3436;
+            margin-bottom: 5px;
+        }
+        
+        .yoga-description {
+            color: #636e72;
+            margin-bottom: 5px;
+        }
+        
+        .yoga-strength {
+            font-style: italic;
+            color: #6c5ce7;
+        }
+        
+        .yoga-strength.strong {
+            color: #00b894;
+        }
+        
+        .yoga-strength.moderate {
+            color: #fdcb6e;
+        }
+        
+        .yoga-strength.weak {
+            color: #d63031;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="text-center my-4">Vedic Astrology Calculator</h1>
+        
+        <!-- Test Profile Selection Row -->
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <select id="test-profiles" class="form-select">
+                        <option value="">-- Select Test Profile --</option>
+                    </select>
+                    <button id="load-profile-btn" class="btn btn-primary">Load</button>
+                    <button id="edit-profile-btn" class="btn btn-secondary">Edit</button>
+                    <button id="delete-profile-btn" class="btn btn-danger">Delete</button>
+                    <button id="add-profile-btn" class="btn btn-success">Add New</button>
+                </div>
+            </div>
+        </div>
         
         <div class="row">
             <div class="col-md-6">
@@ -108,18 +214,6 @@
                         <h5 class="mb-0">Birth Details</h5>
                     </div>
                     <div class="card-body">
-                        <!-- Test Profile Dropdown -->
-                        <div class="test-profile-dropdown mb-3">
-                            <label for="test-profiles" class="form-label">Load Test Profile</label>
-                            <div class="input-group">
-                                <select class="form-select" id="test-profiles">
-                                    <option value="" selected>Select a profile...</option>
-                                    <!-- Test profiles will be loaded here -->
-                                </select>
-                                <button class="btn btn-outline-secondary" type="button" id="load-profile-btn">Load</button>
-                            </div>
-                        </div>
-                        
                         <form id="kundli-form">
                             <div class="mb-3">
                                 <label for="date" class="form-label">Date of Birth</label>
@@ -171,15 +265,65 @@
                                     <button class="nav-link" id="dasha-tab" data-bs-toggle="tab" data-bs-target="#dasha" type="button" role="tab" aria-controls="dasha" aria-selected="false">Dasha</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="vimshottari-tab" data-bs-toggle="tab" data-bs-target="#vimshottari" type="button" role="tab" aria-controls="vimshottari" aria-selected="false">Vimshottari</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="panchang-tab" data-bs-toggle="tab" data-bs-target="#panchang" type="button" role="tab" aria-controls="panchang" aria-selected="false">Panchang</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="divisional-tab" data-bs-toggle="tab" data-bs-target="#divisional" type="button" role="tab" aria-controls="divisional" aria-selected="false">Divisional Charts</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="yogas-tab" data-bs-toggle="tab" data-bs-target="#yogas" type="button" role="tab" aria-controls="yogas" aria-selected="false">Yogas</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="ashtakavarga-tab" data-bs-toggle="tab" data-bs-target="#ashtakavarga" type="button" role="tab" aria-controls="ashtakavarga" aria-selected="false">Ashtakavarga</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="shadbala-tab" data-bs-toggle="tab" data-bs-target="#shadbala" type="button" role="tab" aria-controls="shadbala" aria-selected="false">Shadbala</button>
                                 </li>
                             </ul>
                             <div class="tab-content" id="resultTabsContent">
                                 <div class="tab-pane fade show active" id="chart" role="tabpanel" aria-labelledby="chart-tab">
-                                    <div id="chart-container"></div>
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <div id="chart-container"></div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card mb-3">
+                                                <div class="card-header bg-primary text-white">
+                                                    <h5 class="mb-0">Ascendant (Lagna)</h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="ascendant-info">
+                                                        <p><strong>Sign:</strong> <span id="asc-sign"></span></p>
+                                                        <p><strong>Degree:</strong> <span id="asc-degree"></span></p>
+                                                        <p><strong>Nakshatra:</strong> <span id="asc-nakshatra">-</span></p>
+                                                        <p><strong>Pada:</strong> <span id="asc-pada">-</span></p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="tab-pane fade" id="planets" role="tabpanel" aria-labelledby="planets-tab">
                                     <h5 class="mb-3">Planetary Positions</h5>
+                                    <div class="mb-3">
+                                        <h6>Ascendant (Lagna)</h6>
+                                        <table class="planet-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Sign</th>
+                                                    <th>Degrees</th>
+                                                    <th>House</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="ascendant-table-body">
+                                                <!-- Ascendant data will be inserted here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <h6 class="mb-3">Planets</h6>
                                     <table class="planet-table">
                                         <thead>
                                             <tr>
@@ -211,6 +355,47 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                <div class="tab-pane fade" id="vimshottari" role="tabpanel" aria-labelledby="vimshottari-tab">
+                                    <h5 class="mb-3">Vimshottari Dasha</h5>
+                                    <div class="mb-3">
+                                        <p><strong>Birth Date:</strong> <span id="vimshottari-birth-date"></span></p>
+                                        <p><strong>Moon Nakshatra:</strong> <span id="vimshottari-moon-nakshatra"></span></p>
+                                        <p><strong>Nakshatra Lord:</strong> <span id="vimshottari-nakshatra-lord"></span></p>
+                                    </div>
+                                    <h6 class="mb-2">Mahadashas (Major Periods)</h6>
+                                    <table class="planet-table mb-4">
+                                        <thead>
+                                            <tr>
+                                                <th>Planet</th>
+                                                <th>Start Date</th>
+                                                <th>End Date</th>
+                                                <th>Duration</th>
+                                                <th>Details</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="vimshottari-table-body">
+                                            <!-- Vimshottari data will be inserted here -->
+                                        </tbody>
+                                    </table>
+                                    
+                                    <div id="antardasha-container" style="display: none;">
+                                        <h6 class="mb-2">Antardashas (Sub-Periods)</h6>
+                                        <h6 id="antardasha-title" class="text-muted mb-2"></h6>
+                                        <table class="planet-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Planet</th>
+                                                    <th>Start Date</th>
+                                                    <th>End Date</th>
+                                                    <th>Duration</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="antardasha-table-body">
+                                                <!-- Antardasha data will be inserted here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                                 <div class="tab-pane fade" id="panchang" role="tabpanel" aria-labelledby="panchang-tab">
                                     <h5 class="mb-3">Panchang Details</h5>
                                     <table class="planet-table">
@@ -225,6 +410,94 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                <div class="tab-pane fade" id="divisional" role="tabpanel" aria-labelledby="divisional-tab">
+                                    <h5 class="mb-3">Divisional Charts (Varga)</h5>
+                                    <div class="divisional-tabs">
+                                        <button class="divisional-tab active" onclick="openDivisionalTab(event, 'D9')">Navamsa (D9)</button>
+                                        <button class="divisional-tab" onclick="openDivisionalTab(event, 'D12')">Dwadasamsa (D12)</button>
+                                    </div>
+                                    
+                                    <!-- D9 Chart -->
+                                    <div id="D9" class="divisional-content active">
+                                        <h4>Navamsa Chart (D9)</h4>
+                                        <p>The Navamsa chart is the 9th divisional chart and is considered one of the most important divisional charts in Vedic astrology. It provides insights into marriage, partnerships, and deeper spiritual aspects of life.</p>
+                                        <div class="table-container">
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Planet</th>
+                                                        <th>Sign</th>
+                                                        <th>Degree</th>
+                                                        <th>House</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="navamsa-table">
+                                                    <!-- Navamsa data will be displayed here -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- D12 Chart -->
+                                    <div id="D12" class="divisional-content">
+                                        <h4>Dwadasamsa Chart (D12)</h4>
+                                        <p>The Dwadasamsa chart is the 12th divisional chart and provides insights into the parents, ancestors, and past life influences. It's useful for understanding karmic patterns and family dynamics.</p>
+                                        <div class="table-container">
+                                            <table class="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Planet</th>
+                                                        <th>Sign</th>
+                                                        <th>Degree</th>
+                                                        <th>House</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="dwadasamsa-table">
+                                                    <!-- Dwadasamsa data will be displayed here -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="yogas" role="tabpanel" aria-labelledby="yogas-tab">
+                                    <h5 class="mb-3">Yogas (Astrological Combinations)</h5>
+                                    <p>Yogas are special planetary combinations that indicate specific effects in a person's life. They can bring positive or negative influences depending on their nature and strength.</p>
+                                    
+                                    <div id="yogas-container">
+                                        <!-- Yogas will be displayed here -->
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="ashtakavarga" role="tabpanel" aria-labelledby="ashtakavarga-tab">
+                                    <h5 class="mb-3">Ashtakavarga System</h5>
+                                    <p>The Ashtakavarga system is a key Vedic astrology technique for evaluating planetary and house strengths.</p>
+                                    
+                                    <h6>Sarvashtakavarga (Combined)</h6>
+                                    <div id="sarvashtakavarga-container" class="mb-4">
+                                        <!-- Sarvashtakavarga data will be displayed here -->
+                                    </div>
+                                    
+                                    <h6>Prastarashtakavarga (Individual Planet)</h6>
+                                    <div id="prastarashtakavarga-container" class="mb-4">
+                                        <!-- Prastarashtakavarga data will be displayed here -->
+                                    </div>
+                                    
+                                    <h6>Planet Strengths</h6>
+                                    <div id="planet-strength-container" class="mb-4">
+                                        <!-- Planet strength data will be displayed here -->
+                                    </div>
+                                    
+                                    <h6>House Strengths</h6>
+                                    <div id="house-strength-container" class="mb-4">
+                                        <!-- House strength data will be displayed here -->
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="shadbala" role="tabpanel" aria-labelledby="shadbala-tab">
+                                    <h5 class="mb-3">Shadbala Calculations</h5>
+                                    <p>Shadbala is a system used to calculate the strength of planets in a birth chart.</p>
+                                    <div id="shadbala-content" class="mt-4">
+                                        <!-- Shadbala content will be loaded here -->
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div id="loading" style="display: none;">
@@ -236,6 +509,157 @@
                         </div>
                         <div id="error-message" class="alert alert-danger" style="display: none;"></div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editProfileModalLabel">Edit Test Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProfileForm">
+                        <div class="mb-3">
+                            <label for="profileName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="profileName" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="profileDay" class="form-label">Day</label>
+                                <input type="number" class="form-control" id="profileDay" min="1" max="31" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="profileMonth" class="form-label">Month</label>
+                                <input type="number" class="form-control" id="profileMonth" min="1" max="12" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="profileYear" class="form-label">Year</label>
+                                <input type="number" class="form-control" id="profileYear" min="1" max="2100" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="profileHour" class="form-label">Hour</label>
+                                <input type="number" class="form-control" id="profileHour" min="0" max="23" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="profileMinute" class="form-label">Minute</label>
+                                <input type="number" class="form-control" id="profileMinute" min="0" max="59" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="profileSecond" class="form-label">Second</label>
+                                <input type="number" class="form-control" id="profileSecond" min="0" max="59" value="0" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="profileLocation" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="profileLocation" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="profileLatitude" class="form-label">Latitude</label>
+                                <input type="number" step="0.000001" class="form-control" id="profileLatitude" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="profileLongitude" class="form-label">Longitude</label>
+                                <input type="number" step="0.000001" class="form-control" id="profileLongitude" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveProfileBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Profile Modal -->
+    <div class="modal fade" id="addProfileModal" tabindex="-1" aria-labelledby="addProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addProfileModalLabel">Add New Test Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addProfileForm">
+                        <div class="mb-3">
+                            <label for="newProfileName" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="newProfileName" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="newProfileDay" class="form-label">Day</label>
+                                <input type="number" class="form-control" id="newProfileDay" min="1" max="31" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="newProfileMonth" class="form-label">Month</label>
+                                <input type="number" class="form-control" id="newProfileMonth" min="1" max="12" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="newProfileYear" class="form-label">Year</label>
+                                <input type="number" class="form-control" id="newProfileYear" min="1" max="2100" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="newProfileHour" class="form-label">Hour</label>
+                                <input type="number" class="form-control" id="newProfileHour" min="0" max="23" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="newProfileMinute" class="form-label">Minute</label>
+                                <input type="number" class="form-control" id="newProfileMinute" min="0" max="59" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="newProfileSecond" class="form-label">Second</label>
+                                <input type="number" class="form-control" id="newProfileSecond" min="0" max="59" value="0" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newProfileLocation" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="newProfileLocation" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="newProfileLatitude" class="form-label">Latitude</label>
+                                <input type="number" step="0.000001" class="form-control" id="newProfileLatitude" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="newProfileLongitude" class="form-label">Longitude</label>
+                                <input type="number" step="0.000001" class="form-control" id="newProfileLongitude" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="createProfileBtn">Create Profile</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this profile? This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
                 </div>
             </div>
         </div>
@@ -307,6 +731,275 @@
                     });
             });
             
+            // Edit profile button click handler
+            const editProfileBtn = document.getElementById('edit-profile-btn');
+            const editProfileModal = new bootstrap.Modal(document.getElementById('editProfileModal'));
+            const saveProfileBtn = document.getElementById('saveProfileBtn');
+            let currentProfileId = null;
+            
+            editProfileBtn.addEventListener('click', function() {
+                const profileId = testProfilesSelect.value;
+                if (!profileId) {
+                    showError('Please select a profile to edit');
+                    return;
+                }
+                
+                currentProfileId = profileId;
+                
+                // Show loading indicator
+                loadingDiv.style.display = 'block';
+                errorMessageDiv.style.display = 'none';
+                
+                fetch(`/load_test_profile/${profileId}`)
+                    .then(response => response.json())
+                    .then(profile => {
+                        // Fill form with profile data
+                        document.getElementById('profileName').value = profile.name;
+                        
+                        // Parse date
+                        const dateParts = profile.date.split('-');
+                        document.getElementById('profileYear').value = dateParts[0];
+                        document.getElementById('profileMonth').value = dateParts[1];
+                        document.getElementById('profileDay').value = dateParts[2];
+                        
+                        // Parse time
+                        const timeParts = profile.time.split(':');
+                        document.getElementById('profileHour').value = timeParts[0];
+                        document.getElementById('profileMinute').value = timeParts[1];
+                        document.getElementById('profileSecond').value = timeParts.length > 2 ? timeParts[2] : '0';
+                        
+                        // Set location and coordinates
+                        document.getElementById('profileLocation').value = profile.location || '';
+                        document.getElementById('profileLatitude').value = profile.latitude;
+                        document.getElementById('profileLongitude').value = profile.longitude;
+                        
+                        // Hide loading indicator
+                        loadingDiv.style.display = 'none';
+                        
+                        // Show modal
+                        editProfileModal.show();
+                    })
+                    .catch(error => {
+                        loadingDiv.style.display = 'none';
+                        showError('Error loading profile: ' + error.message);
+                    });
+            });
+            
+            saveProfileBtn.addEventListener('click', function() {
+                // Get form data
+                const profileData = {
+                    name: document.getElementById('profileName').value,
+                    date: `${document.getElementById('profileYear').value}-${document.getElementById('profileMonth').value.padStart(2, '0')}-${document.getElementById('profileDay').value.padStart(2, '0')}`,
+                    time: `${document.getElementById('profileHour').value.padStart(2, '0')}:${document.getElementById('profileMinute').value.padStart(2, '0')}:${document.getElementById('profileSecond').value.padStart(2, '0')}`,
+                    location: document.getElementById('profileLocation').value,
+                    latitude: parseFloat(document.getElementById('profileLatitude').value),
+                    longitude: parseFloat(document.getElementById('profileLongitude').value)
+                };
+                
+                // Show loading indicator
+                loadingDiv.style.display = 'block';
+                errorMessageDiv.style.display = 'none';
+                
+                // Send data to server
+                fetch(`/edit_test_profile/${currentProfileId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to save profile');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Hide modal
+                    editProfileModal.hide();
+                    
+                    // Reload test profiles
+                    reloadTestProfiles();
+                    
+                    // Hide loading indicator
+                    loadingDiv.style.display = 'none';
+                    
+                    // Show success message
+                    showSuccess('Profile updated successfully');
+                })
+                .catch(error => {
+                    loadingDiv.style.display = 'none';
+                    showError('Error saving profile: ' + error.message);
+                });
+            });
+            
+            // Add new profile button click handler
+            const addProfileBtn = document.getElementById('add-profile-btn');
+            const addProfileModal = new bootstrap.Modal(document.getElementById('addProfileModal'));
+            const createProfileBtn = document.getElementById('createProfileBtn');
+            
+            addProfileBtn.addEventListener('click', function() {
+                // Clear form
+                document.getElementById('addProfileForm').reset();
+                
+                // Set default values
+                const now = new Date();
+                document.getElementById('newProfileYear').value = now.getFullYear();
+                document.getElementById('newProfileMonth').value = now.getMonth() + 1;
+                document.getElementById('newProfileDay').value = now.getDate();
+                document.getElementById('newProfileHour').value = now.getHours();
+                document.getElementById('newProfileMinute').value = now.getMinutes();
+                document.getElementById('newProfileSecond').value = '0';
+                
+                // Show modal
+                addProfileModal.show();
+            });
+            
+            createProfileBtn.addEventListener('click', function() {
+                // Get form data
+                const profileData = {
+                    name: document.getElementById('newProfileName').value,
+                    date: `${document.getElementById('newProfileYear').value}-${document.getElementById('newProfileMonth').value.padStart(2, '0')}-${document.getElementById('newProfileDay').value.padStart(2, '0')}`,
+                    time: `${document.getElementById('newProfileHour').value.padStart(2, '0')}:${document.getElementById('newProfileMinute').value.padStart(2, '0')}:${document.getElementById('newProfileSecond').value.padStart(2, '0')}`,
+                    location: document.getElementById('newProfileLocation').value,
+                    latitude: parseFloat(document.getElementById('newProfileLatitude').value),
+                    longitude: parseFloat(document.getElementById('newProfileLongitude').value)
+                };
+                
+                // Show loading indicator
+                loadingDiv.style.display = 'block';
+                errorMessageDiv.style.display = 'none';
+                
+                // Send data to server
+                fetch('/add_test_profile', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to add profile');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Hide modal
+                    addProfileModal.hide();
+                    
+                    // Reload test profiles
+                    reloadTestProfiles();
+                    
+                    // Hide loading indicator
+                    loadingDiv.style.display = 'none';
+                    
+                    // Show success message
+                    showSuccess('Profile added successfully');
+                })
+                .catch(error => {
+                    loadingDiv.style.display = 'none';
+                    showError('Error adding profile: ' + error.message);
+                });
+            });
+            
+            // Delete profile button click handler
+            const deleteProfileBtn = document.getElementById('delete-profile-btn');
+            const confirmDeleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            
+            deleteProfileBtn.addEventListener('click', function() {
+                const profileId = testProfilesSelect.value;
+                if (!profileId) {
+                    showError('Please select a profile to delete');
+                    return;
+                }
+                
+                currentProfileId = profileId;
+                
+                // Show confirmation modal
+                confirmDeleteModal.show();
+            });
+            
+            confirmDeleteBtn.addEventListener('click', function() {
+                // Show loading indicator
+                loadingDiv.style.display = 'block';
+                errorMessageDiv.style.display = 'none';
+                
+                // Send delete request
+                fetch(`/delete_test_profile/${currentProfileId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to delete profile');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Hide modal
+                    confirmDeleteModal.hide();
+                    
+                    // Reload test profiles
+                    reloadTestProfiles();
+                    
+                    // Hide loading indicator
+                    loadingDiv.style.display = 'none';
+                    
+                    // Show success message
+                    showSuccess('Profile deleted successfully');
+                })
+                .catch(error => {
+                    loadingDiv.style.display = 'none';
+                    showError('Error deleting profile: ' + error.message);
+                });
+            });
+            
+            // Function to reload test profiles
+            function reloadTestProfiles() {
+                // Clear select options
+                while (testProfilesSelect.options.length > 1) {
+                    testProfilesSelect.remove(1);
+                }
+                
+                // Load test profiles
+                fetch('/test_profiles')
+                    .then(response => response.json())
+                    .then(profiles => {
+                        profiles.forEach((profile, index) => {
+                            const option = document.createElement('option');
+                            option.value = index;
+                            option.textContent = profile.name;
+                            testProfilesSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading test profiles:', error);
+                    });
+            }
+            
+            // Function to show success message
+            function showSuccess(message) {
+                errorMessageDiv.textContent = message;
+                errorMessageDiv.style.display = 'block';
+                errorMessageDiv.classList.remove('alert-danger');
+                errorMessageDiv.classList.add('alert-success');
+                
+                // Hide after 3 seconds
+                setTimeout(() => {
+                    errorMessageDiv.style.display = 'none';
+                }, 3000);
+            }
+            
+            // Function to show error message
+            function showError(message) {
+                loadingDiv.style.display = 'none';
+                errorMessageDiv.textContent = message;
+                errorMessageDiv.style.display = 'block';
+                errorMessageDiv.classList.remove('alert-success');
+                errorMessageDiv.classList.add('alert-danger');
+            }
+            
             // Toggle manual coordinates input
             manualCoordinatesCheckbox.addEventListener('change', function() {
                 if (this.checked) {
@@ -356,6 +1049,8 @@
                     timezone: 'UTC'  // Default timezone, would be determined by location in a real app
                 };
                 
+                console.log('Sending data to server:', data);
+                
                 // Call the API
                 fetch('/calculate', {
                     method: 'POST',
@@ -365,12 +1060,20 @@
                     body: JSON.stringify(data)
                 })
                 .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+                    
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        return response.text().then(text => {
+                            console.error('Error response text:', text);
+                            throw new Error(`Network response was not ok: ${response.status} ${response.statusText}. Details: ${text}`);
+                        });
                     }
                     return response.json();
                 })
                 .then(data => {
+                    console.log('Received data from server:', data);
+                    
                     // Hide loading indicator
                     loadingDiv.style.display = 'none';
                     
@@ -381,26 +1084,159 @@
                     resultsDiv.style.display = 'block';
                 })
                 .catch(error => {
+                    console.error('Fetch error:', error);
                     showError('Error calculating chart: ' + error.message);
                 });
             });
             
-            function showError(message) {
-                loadingDiv.style.display = 'none';
-                errorMessageDiv.textContent = message;
-                errorMessageDiv.style.display = 'block';
-            }
-            
             function displayResults(data) {
-                // Create chart visualization
+                // Hide loading indicator
+                loadingDiv.style.display = 'none';
+                
+                // Show results
+                resultsDiv.style.display = 'block';
+                
+                // Display chart
                 createKundliChart(data, 'chart-container');
                 
-                // Display planets
+                // Display planets data
+                displayPlanetsData(data.planets);
+                
+                // Display dasha data
+                displayDashaData(data.dasha);
+                
+                // Display Vimshottari Dasha data
+                displayVimshottariDashaData(data.vimshottari_dasha);
+                
+                // Display panchang data
+                displayPanchangData(data.panchang);
+                
+                // Display divisional charts
+                displayDivisionalCharts(data.divisional_charts);
+                
+                // Display yogas
+                displayYogasData(data.yogas);
+                
+                // Display ascendant data
+                displayAscendantData(data.ascendant);
+                
+                // Display ascendant info
+                displayAscendantInfo(data.ascendant);
+                
+                // Display Ashtakavarga data
+                displayAshtakavarga(data.ashtakavarga);
+                
+                // Display Shadbala data
+                displayShadbala(data.shadbala);
+            }
+            
+            // Function to display Vimshottari Dasha data
+            function displayVimshottariDashaData(vimshottariDasha) {
+                const vimshottariTableBody = document.getElementById('vimshottari-table-body');
+                const birthDateSpan = document.getElementById('vimshottari-birth-date');
+                const moonNakshatraSpan = document.getElementById('vimshottari-moon-nakshatra');
+                const nakshatraLordSpan = document.getElementById('vimshottari-nakshatra-lord');
+                
+                vimshottariTableBody.innerHTML = '';
+                
+                if (vimshottariDasha) {
+                    // Display basic information
+                    birthDateSpan.textContent = formatDate(vimshottariDasha.birth_date);
+                    moonNakshatraSpan.textContent = vimshottariDasha.moon_nakshatra;
+                    nakshatraLordSpan.textContent = vimshottariDasha.moon_nakshatra_lord;
+                    
+                    // Display dasha periods
+                    if (vimshottariDasha.dasha_periods && vimshottariDasha.dasha_periods.length > 0) {
+                        vimshottariDasha.dasha_periods.forEach((period, index) => {
+                            const row = document.createElement('tr');
+                            
+                            const viewAntardashaBtn = document.createElement('button');
+                            viewAntardashaBtn.className = 'btn btn-sm btn-secondary';
+                            viewAntardashaBtn.textContent = 'View Antardashas';
+                            viewAntardashaBtn.onclick = function() {
+                                showAntardashas(period);
+                            };
+                            
+                            row.innerHTML = `
+                                <td>${getPlanetSymbol(period.planet)} ${period.planet}</td>
+                                <td>${formatDate(period.start_date)}</td>
+                                <td>${formatDate(period.end_date)}</td>
+                                <td>${period.duration}</td>
+                                <td></td>
+                            `;
+                            
+                            row.cells[4].appendChild(viewAntardashaBtn);
+                            vimshottariTableBody.appendChild(row);
+                        });
+                    } else {
+                        vimshottariTableBody.innerHTML = '<tr><td colspan="5">No dasha periods available</td></tr>';
+                    }
+                } else {
+                    birthDateSpan.textContent = 'Not available';
+                    moonNakshatraSpan.textContent = 'Not available';
+                    nakshatraLordSpan.textContent = 'Not available';
+                    vimshottariTableBody.innerHTML = '<tr><td colspan="5">Vimshottari Dasha data not available</td></tr>';
+                }
+            }
+            
+            // Function to show antardashas
+            function showAntardashas(period) {
+                const antardashaContainer = document.getElementById('antardasha-container');
+                const antardashaTitle = document.getElementById('antardasha-title');
+                const antardashaTableBody = document.getElementById('antardasha-table-body');
+                
+                antardashaContainer.style.display = 'block';
+                antardashaTitle.textContent = `Antardashas of ${getPlanetSymbol(period.planet)} ${period.planet} (${formatDate(period.start_date)} - ${formatDate(period.end_date)})`;
+                
+                antardashaTableBody.innerHTML = '';
+                
+                if (period.antardashas && period.antardashas.length > 0) {
+                    period.antardashas.forEach(antardasha => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${getPlanetSymbol(antardasha.planet)} ${antardasha.planet}</td>
+                            <td>${formatDate(antardasha.start_date)}</td>
+                            <td>${formatDate(antardasha.end_date)}</td>
+                            <td>${antardasha.duration}</td>
+                        `;
+                        antardashaTableBody.appendChild(row);
+                    });
+                } else {
+                    antardashaTableBody.innerHTML = '<tr><td colspan="4">No antardasha data available</td></tr>';
+                }
+                
+                // Scroll to the antardasha container
+                antardashaContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            // Function to display dasha data
+            function displayDashaData(dasha) {
+                const dashaTableBody = document.getElementById('dasha-table-body');
+                dashaTableBody.innerHTML = '';
+                
+                if (dasha && dasha.periods && dasha.periods.length > 0) {
+                    dasha.periods.forEach(period => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${getPlanetSymbol(period.planet)} ${period.planet}</td>
+                            <td>${formatDate(period.start_date)}</td>
+                            <td>${formatDate(period.end_date)}</td>
+                            <td>${period.duration}</td>
+                        `;
+                        dashaTableBody.appendChild(row);
+                    });
+                } else {
+                    dashaTableBody.innerHTML = '<tr><td colspan="4">Dasha data not available</td></tr>';
+                }
+            }
+            
+            // Function to display planets data
+            function displayPlanetsData(planets) {
                 const planetsTableBody = document.getElementById('planets-table-body');
                 planetsTableBody.innerHTML = '';
                 
-                if (data.planets && Array.isArray(data.planets)) {
-                    data.planets.forEach(planet => {
+                if (planets && Array.isArray(planets)) {
+                    planets.forEach(planet => {
                         const row = document.createElement('tr');
                         
                         // Get zodiac symbol
@@ -429,71 +1265,50 @@
                         
                         planetsTableBody.appendChild(row);
                     });
-                } else if (data.planets && typeof data.planets === 'object') {
+                } else if (planets && typeof planets === 'object') {
                     // Handle planets as an object
-                    Object.entries(data.planets).forEach(([name, planet]) => {
+                    Object.entries(planets).forEach(([name, planet]) => {
                         const row = document.createElement('tr');
                         
-                        // Get zodiac symbol
-                        const zodiacInfo = longitudeToZodiac(planet.longitude);
-                        const zodiacSymbol = getZodiacSymbol(zodiacInfo.sign);
+                        // Planet name with symbol
+                        const planetCell = document.createElement('td');
+                        planetCell.innerHTML = getPlanetSymbol(name) + ' ' + name;
+                        row.appendChild(planetCell);
                         
-                        // Format degrees
-                        const formattedDegrees = formatDMS(zodiacInfo.degrees);
+                        // Sign with symbol
+                        const signCell = document.createElement('td');
+                        signCell.innerHTML = getZodiacSymbol(planet.sign) + ' ' + planet.sign;
+                        row.appendChild(signCell);
                         
-                        // Determine dignity class
-                        let dignityClass = 'neutral';
-                        if (planet.dignity) {
-                            dignityClass = planet.dignity.toLowerCase();
-                        }
+                        // Degree
+                        const degreeCell = document.createElement('td');
+                        degreeCell.textContent = formatDegree(planet.degree);
+                        row.appendChild(degreeCell);
                         
-                        // Create cells
-                        row.innerHTML = `
-                            <td>${getPlanetSymbol(name)} ${name}</td>
-                            <td><span class="zodiac-symbol">${zodiacSymbol}</span> ${zodiacInfo.sign}</td>
-                            <td>${formattedDegrees}</td>
-                            <td>${planet.house || '-'}</td>
-                            <td class="${dignityClass}${planet.isRetrograde ? ' retrograde' : ''}">
-                                ${planet.dignity || 'Neutral'}${planet.isRetrograde ? ' (R)' : ''}
-                            </td>
-                        `;
+                        // House
+                        const houseCell = document.createElement('td');
+                        houseCell.textContent = planet.house;
+                        row.appendChild(houseCell);
                         
                         planetsTableBody.appendChild(row);
                     });
                 } else {
                     planetsTableBody.innerHTML = '<tr><td colspan="5">Planet data not available</td></tr>';
                 }
-                
-                // Display dasha periods
-                const dashaTableBody = document.getElementById('dasha-table-body');
-                dashaTableBody.innerHTML = '';
-                
-                if (data.dasha && data.dasha.periods && data.dasha.periods.length > 0) {
-                    data.dasha.periods.forEach(period => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${getPlanetSymbol(period.planet)} ${period.planet}</td>
-                            <td>${formatDate(period.start)}</td>
-                            <td>${formatDate(period.end)}</td>
-                            <td>${period.duration}</td>
-                        `;
-                        dashaTableBody.appendChild(row);
-                    });
-                } else {
-                    dashaTableBody.innerHTML = '<tr><td colspan="4">Dasha data not available</td></tr>';
-                }
-                
-                // Display panchang details
+            }
+            
+            // Function to display panchang data
+            function displayPanchangData(panchang) {
                 const panchangTableBody = document.getElementById('panchang-table-body');
                 panchangTableBody.innerHTML = '';
                 
-                if (data.panchang) {
+                if (panchang) {
                     const panchangItems = [
-                        { name: 'Tithi', value: data.panchang.tithi },
-                        { name: 'Nakshatra', value: data.panchang.nakshatra },
-                        { name: 'Yoga', value: data.panchang.yoga },
-                        { name: 'Karana', value: data.panchang.karana },
-                        { name: 'Weekday', value: data.panchang.weekday }
+                        { name: 'Tithi', value: panchang.tithi },
+                        { name: 'Nakshatra', value: panchang.nakshatra },
+                        { name: 'Yoga', value: panchang.yoga },
+                        { name: 'Karana', value: panchang.karana },
+                        { name: 'Weekday', value: panchang.weekday }
                     ];
                     
                     panchangItems.forEach(item => {
@@ -509,6 +1324,190 @@
                 } else {
                     panchangTableBody.innerHTML = '<tr><td colspan="2">Panchang data not available</td></tr>';
                 }
+            }
+            
+            // Function to display divisional charts data
+            function displayDivisionalCharts(divisionalCharts) {
+                if (!divisionalCharts) {
+                    return;
+                }
+                
+                // Display Navamsa (D9) data
+                const navamsaTable = document.getElementById('navamsa-table');
+                navamsaTable.innerHTML = '';
+                
+                if (divisionalCharts.D9) {
+                    Object.entries(divisionalCharts.D9).forEach(([planet, data]) => {
+                        const row = document.createElement('tr');
+                        
+                        // Planet name with symbol
+                        const planetCell = document.createElement('td');
+                        planetCell.innerHTML = getPlanetSymbol(planet) + ' ' + planet;
+                        row.appendChild(planetCell);
+                        
+                        // Sign with symbol
+                        const signCell = document.createElement('td');
+                        signCell.innerHTML = getZodiacSymbol(data.sign) + ' ' + data.sign;
+                        row.appendChild(signCell);
+                        
+                        // Degree
+                        const degreeCell = document.createElement('td');
+                        degreeCell.textContent = formatDegree(data.degree);
+                        row.appendChild(degreeCell);
+                        
+                        // House
+                        const houseCell = document.createElement('td');
+                        houseCell.textContent = data.house;
+                        row.appendChild(houseCell);
+                        
+                        navamsaTable.appendChild(row);
+                    });
+                }
+                
+                // Display Dwadasamsa (D12) data
+                const dwadasamsaTable = document.getElementById('dwadasamsa-table');
+                dwadasamsaTable.innerHTML = '';
+                
+                if (divisionalCharts.D12) {
+                    Object.entries(divisionalCharts.D12).forEach(([planet, data]) => {
+                        const row = document.createElement('tr');
+                        
+                        // Planet name with symbol
+                        const planetCell = document.createElement('td');
+                        planetCell.innerHTML = getPlanetSymbol(planet) + ' ' + planet;
+                        row.appendChild(planetCell);
+                        
+                        // Sign with symbol
+                        const signCell = document.createElement('td');
+                        signCell.innerHTML = getZodiacSymbol(data.sign) + ' ' + data.sign;
+                        row.appendChild(signCell);
+                        
+                        // Degree
+                        const degreeCell = document.createElement('td');
+                        degreeCell.textContent = formatDegree(data.degree);
+                        row.appendChild(degreeCell);
+                        
+                        // House
+                        const houseCell = document.createElement('td');
+                        houseCell.textContent = data.house;
+                        row.appendChild(houseCell);
+                        
+                        dwadasamsaTable.appendChild(row);
+                    });
+                }
+            }
+            
+            // Function to display yogas data
+            function displayYogasData(yogas) {
+                const yogasContainer = document.getElementById('yogas-container');
+                yogasContainer.innerHTML = '';
+                
+                if (!yogas || Object.keys(yogas).length === 0) {
+                    yogasContainer.innerHTML = '<p>No significant yogas detected in this chart.</p>';
+                    return;
+                }
+                
+                // Loop through each yoga category
+                for (const [category, yogaItems] of Object.entries(yogas)) {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'yoga-category';
+                    
+                    // Create category header
+                    const categoryHeader = document.createElement('div');
+                    categoryHeader.className = 'yoga-category-header';
+                    categoryHeader.textContent = category;
+                    categoryDiv.appendChild(categoryHeader);
+                    
+                    // Handle different yoga data structures
+                    if (Array.isArray(yogaItems)) {
+                        // For categories with multiple yogas (like Raj Yogas)
+                        yogaItems.forEach(yoga => {
+                            const yogaDiv = createYogaItemDiv(yoga);
+                            categoryDiv.appendChild(yogaDiv);
+                        });
+                    } else {
+                        // For single yoga items (like Gajakesari Yoga)
+                        const yogaDiv = createYogaItemDiv(yogaItems);
+                        categoryDiv.appendChild(yogaDiv);
+                    }
+                    
+                    yogasContainer.appendChild(categoryDiv);
+                }
+            }
+            
+            // Helper function to create a yoga item div
+            function createYogaItemDiv(yoga) {
+                const yogaDiv = document.createElement('div');
+                yogaDiv.className = 'yoga-item';
+                
+                // Yoga name
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'yoga-name';
+                nameDiv.textContent = yoga.name;
+                yogaDiv.appendChild(nameDiv);
+                
+                // Yoga description
+                const descDiv = document.createElement('div');
+                descDiv.className = 'yoga-description';
+                descDiv.textContent = yoga.description;
+                yogaDiv.appendChild(descDiv);
+                
+                // Yoga strength if available
+                if (yoga.strength) {
+                    const strengthDiv = document.createElement('div');
+                    strengthDiv.className = 'yoga-strength';
+                    
+                    // Add strength-specific class
+                    if (yoga.strength.toLowerCase().includes('strong')) {
+                        strengthDiv.classList.add('strong');
+                    } else if (yoga.strength.toLowerCase().includes('moderate')) {
+                        strengthDiv.classList.add('moderate');
+                    } else if (yoga.strength.toLowerCase().includes('weak')) {
+                        strengthDiv.classList.add('weak');
+                    }
+                    
+                    strengthDiv.textContent = `Strength: ${yoga.strength}`;
+                    yogaDiv.appendChild(strengthDiv);
+                }
+                
+                // Handle special case for Neechabhanga Raj Yoga which has planets array
+                if (yoga.planets && Array.isArray(yoga.planets)) {
+                    const planetsDiv = document.createElement('div');
+                    planetsDiv.className = 'yoga-planets';
+                    planetsDiv.style.marginTop = '10px';
+                    
+                    yoga.planets.forEach(planetInfo => {
+                        const planetDiv = document.createElement('div');
+                        planetDiv.style.marginBottom = '5px';
+                        planetDiv.textContent = planetInfo.description;
+                        planetsDiv.appendChild(planetDiv);
+                    });
+                    
+                    yogaDiv.appendChild(planetsDiv);
+                }
+                
+                return yogaDiv;
+            }
+            
+            // Function to open divisional chart tab
+            function openDivisionalTab(evt, chartName) {
+                // Hide all divisional content
+                const divisionalContent = document.getElementsByClassName('divisional-content');
+                for (let i = 0; i < divisionalContent.length; i++) {
+                    divisionalContent[i].style.display = 'none';
+                    divisionalContent[i].classList.remove('active');
+                }
+                
+                // Remove "active" class from all tabs
+                const divisionalTabs = document.getElementsByClassName('divisional-tab');
+                for (let i = 0; i < divisionalTabs.length; i++) {
+                    divisionalTabs[i].classList.remove('active');
+                }
+                
+                // Show the current tab and add "active" class
+                document.getElementById(chartName).style.display = 'block';
+                document.getElementById(chartName).classList.add('active');
+                evt.currentTarget.classList.add('active');
             }
             
             // Helper function to format date
@@ -583,6 +1582,281 @@
                 const s = Math.round((mFloat - m) * 60);
                 
                 return `${d}° ${m}' ${s}"`;
+            }
+            
+            // Helper function to format degree
+            function formatDegree(degree) {
+                return `${degree}°`;
+            }
+            
+            // Function to display ascendant data
+            function displayAscendantData(ascendant) {
+                const ascendantTableBody = document.getElementById('ascendant-table-body');
+                ascendantTableBody.innerHTML = '';
+                
+                if (ascendant) {
+                    const row = document.createElement('tr');
+                    
+                    // Get zodiac symbol
+                    const zodiacSymbol = getZodiacSymbol(ascendant.sign);
+                    
+                    // Format degrees
+                    const formattedDegrees = ascendant.formatted_degree || formatDMS(ascendant.degree);
+                    
+                    row.innerHTML = `
+                        <td><span class="zodiac-symbol">${zodiacSymbol}</span> ${ascendant.sign}</td>
+                        <td>${formattedDegrees}</td>
+                        <td>1</td>
+                    `;
+                    
+                    ascendantTableBody.appendChild(row);
+                } else {
+                    ascendantTableBody.innerHTML = '<tr><td colspan="3">Ascendant data not available</td></tr>';
+                }
+            }
+            
+            // Function to display ascendant info
+            function displayAscendantInfo(ascendant) {
+                const ascSignSpan = document.getElementById('asc-sign');
+                const ascDegreeSpan = document.getElementById('asc-degree');
+                const ascNakshatraSpan = document.getElementById('asc-nakshatra');
+                const ascPadaSpan = document.getElementById('asc-pada');
+                
+                if (ascendant) {
+                    ascSignSpan.textContent = ascendant.sign;
+                    ascDegreeSpan.textContent = ascendant.formatted_degree || formatDMS(ascendant.degree);
+                    ascNakshatraSpan.textContent = ascendant.nakshatra || '-';
+                    ascPadaSpan.textContent = ascendant.pada || '-';
+                } else {
+                    ascSignSpan.textContent = '-';
+                    ascDegreeSpan.textContent = '-';
+                    ascNakshatraSpan.textContent = '-';
+                    ascPadaSpan.textContent = '-';
+                }
+            }
+            
+            // Function to display Ashtakavarga data
+            function displayAshtakavarga(ashtakavargaData) {
+                const container = document.getElementById('ashtakavarga-content');
+                if (!container) {
+                    console.error('Ashtakavarga content container not found');
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                // Check if ashtakavargaData exists
+                if (!ashtakavargaData || !ashtakavargaData.sarvashtakavarga || !ashtakavargaData.prastarashtakavarga) {
+                    container.innerHTML = '<div class="alert alert-info">No Ashtakavarga data available</div>';
+                    return;
+                }
+                
+                // Display Sarvashtakavarga
+                const sarvashtakavargaDiv = document.createElement('div');
+                sarvashtakavargaDiv.innerHTML = `
+                    <h4>Sarvashtakavarga</h4>
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>House</th>
+                                <th>Total Bindus</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(ashtakavargaData.sarvashtakavarga).map(([house, bindus]) => `
+                                <tr>
+                                    <td>${parseInt(house) + 1}</td>
+                                    <td>${bindus}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.appendChild(sarvashtakavargaDiv);
+                
+                // Display individual Ashtakavargas
+                const planetsDiv = document.createElement('div');
+                planetsDiv.innerHTML = `
+                    <h4 class="mt-4">Prastarashtakavarga</h4>
+                    <div class="accordion" id="ashtakavargaAccordion">
+                        ${Object.entries(ashtakavargaData.prastarashtakavarga).map(([planet, houses], index) => `
+                            <div class="card">
+                                <div class="card-header" id="heading${index}">
+                                    <h5 class="mb-0">
+                                        <button class="btn btn-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="false" aria-controls="collapse${index}">
+                                            ${planet} Ashtakavarga
+                                        </button>
+                                    </h5>
+                                </div>
+                                <div id="collapse${index}" class="collapse" aria-labelledby="heading${index}" data-bs-parent="#ashtakavargaAccordion">
+                                    <div class="card-body">
+                                        <table class="table table-bordered table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>House</th>
+                                                    <th>Bindu</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${Object.entries(houses).map(([house, bindu]) => `
+                                                    <tr>
+                                                        <td>${parseInt(house) + 1}</td>
+                                                        <td>${bindu}</td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(planetsDiv);
+            }
+            
+            // Function to display Shadbala data
+            function displayShadbala(shadbalaData) {
+                const container = document.getElementById('shadbala-content');
+                if (!container) {
+                    console.error('Shadbala content container not found');
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                // Check if shadbalaData exists
+                if (!shadbalaData || Object.keys(shadbalaData).length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">No Shadbala data available</div>';
+                    return;
+                }
+                
+                // Create summary table
+                const summaryDiv = document.createElement('div');
+                summaryDiv.innerHTML = `
+                    <h4>Shadbala Summary</h4>
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>Planet</th>
+                                <th>Total Strength (Rupas)</th>
+                                <th>Required Strength</th>
+                                <th>Shadbala Pinda</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(shadbalaData).map(([planet, data]) => `
+                                <tr>
+                                    <td>${planet}</td>
+                                    <td>${data.total_rupas.toFixed(2)}</td>
+                                    <td>${data.required_strength.toFixed(2)}</td>
+                                    <td>${data.shadbala_pinda.toFixed(2)}</td>
+                                    <td>${data.is_strong ? '<span class="text-success">Strong</span>' : '<span class="text-danger">Weak</span>'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.appendChild(summaryDiv);
+                
+                // Create detailed accordion for each planet
+                const detailsDiv = document.createElement('div');
+                detailsDiv.innerHTML = `
+                    <h4 class="mt-4">Detailed Shadbala</h4>
+                    <div class="accordion" id="shadbalaAccordion">
+                        ${Object.entries(shadbalaData).map(([planet, data], index) => `
+                            <div class="card">
+                                <div class="card-header" id="shadbalaHeading${index}">
+                                    <h5 class="mb-0">
+                                        <button class="btn btn-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#shadbalaCollapse${index}" aria-expanded="false" aria-controls="shadbalaCollapse${index}">
+                                            ${planet} Shadbala Details
+                                        </button>
+                                    </h5>
+                                </div>
+                                <div id="shadbalaCollapse${index}" class="collapse" aria-labelledby="shadbalaHeading${index}" data-bs-parent="#shadbalaAccordion">
+                                    <div class="card-body">
+                                        <table class="table table-bordered table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Strength Type</th>
+                                                    <th>Value (Virupas)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Sthana Bala (Positional)</td>
+                                                    <td>${data.sthana_bala.total.toFixed(2)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Dig Bala (Directional)</td>
+                                                    <td>${data.dig_bala.total.toFixed(2)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Kala Bala (Temporal)</td>
+                                                    <td>${data.kala_bala.total.toFixed(2)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Chesta Bala (Motional)</td>
+                                                    <td>${data.chesta_bala.total.toFixed(2)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Naisargika Bala (Natural)</td>
+                                                    <td>${data.naisargika_bala.total.toFixed(2)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Drik Bala (Aspectual)</td>
+                                                    <td>${data.drik_bala.total.toFixed(2)}</td>
+                                                </tr>
+                                                <tr class="table-primary">
+                                                    <td><strong>Total (Virupas)</strong></td>
+                                                    <td><strong>${data.total_virupas.toFixed(2)}</strong></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        
+                                        <h5 class="mt-3">Kala Bala Components</h5>
+                                        <table class="table table-bordered table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Component</th>
+                                                    <th>Value</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Natonnata Bala</td>
+                                                    <td>${data.kala_bala.natonnata_bala.toFixed(2)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Paksha Bala</td>
+                                                    <td>${data.kala_bala.paksha_bala.toFixed(2)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Tribhaga Bala</td>
+                                                    <td>${data.kala_bala.tribhaga_bala.toFixed(2)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Other Temporal Strength</td>
+                                                    <td>${data.kala_bala.other_temporal_strength.toFixed(2)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Ayana Bala</td>
+                                                    <td>${data.kala_bala.ayana_bala.toFixed(2)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Yuddha Bala</td>
+                                                    <td>${data.kala_bala.yuddha_bala.toFixed(2)}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(detailsDiv);
             }
         });
     </script>

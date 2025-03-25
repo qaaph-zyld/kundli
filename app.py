@@ -4,9 +4,13 @@ from datetime import datetime
 import json
 import pytz
 from vedic_calculator.core import VedicCalculator
+import logging
 
 app = Flask(__name__)
 CORS(app)
+
+# Set up logging
+app.logger.setLevel(logging.INFO)
 
 # Load cities database
 def load_cities():
@@ -70,7 +74,9 @@ test_profiles = load_test_profiles()
 def calculate():
     """Endpoint for the frontend to calculate a chart"""
     try:
+        print("Received request to /calculate endpoint")
         data = request.json
+        print(f"Request data: {data}")
         
         # Format the data for our calculate_chart function
         chart_data = {
@@ -82,11 +88,21 @@ def calculate():
             # Using only Lahiri ayanamsa and Whole Sign house system as required
         }
         
+        print(f"Formatted chart data: {chart_data}")
+        
         # Call our existing calculate_chart function
-        return calculate_chart_internal(chart_data)
+        result = calculate_chart_internal(chart_data)
+        
+        # Log Shadbala data for debugging
+        if 'shadbala' in result:
+            app.logger.info(f"Shadbala data: {result['shadbala']}")
+        else:
+            app.logger.warning("Shadbala data not found in calculation result")
+        
+        return result
     
     except Exception as e:
-        print(f"Error in calculate endpoint: {str(e)}")
+        app.logger.error(f"Error in calculate endpoint: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -549,6 +565,11 @@ def get_vimshottari_dasha():
         return jsonify(result['vimshottari_dasha'])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/test', methods=['GET'])
+def test():
+    """Simple test endpoint to verify the server is working"""
+    return jsonify({'status': 'ok', 'message': 'Server is working correctly'})
 
 if __name__ == '__main__':
     app.run(debug=True)

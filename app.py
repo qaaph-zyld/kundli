@@ -99,6 +99,13 @@ def calculate():
         else:
             app.logger.warning("Shadbala data not found in calculation result")
         
+        # Log Vimsopaka Bala data for debugging
+        if 'vimsopaka_bala' in result:
+            app.logger.info(f"Vimsopaka Bala data: {result['vimsopaka_bala']}")
+            app.logger.info(f"Vimsopaka Bala calculation details: {result.get('vimsopaka_bala_calculation_details', 'Not available')}")
+        else:
+            app.logger.warning("Vimsopaka Bala data not found in calculation result")
+        
         return result
     
     except Exception as e:
@@ -220,6 +227,31 @@ def calculate_chart_internal(data):
             'strength': calculator.get_ashtakavarga_strength()
         }
         
+        # Calculate Shadbala
+        shadbala = calculator.calculate_shadbala()
+        
+        # Calculate Vimsopaka Bala
+        vimsopaka_bala_calculation_details = calculator.calculate_vimsopaka_bala_details()
+        vimsopaka_bala = calculator.calculate_vimsopaka_bala()
+        
+        # Debug: Print divisional charts structure
+        if 'divisional_charts' in locals():
+            print(f"Divisional charts keys: {list(divisional_charts.keys())}")
+            if 'D1' in divisional_charts:
+                print(f"D1 chart keys: {list(divisional_charts['D1'].keys())}")
+                if 'planets' in divisional_charts['D1']:
+                    print(f"D1 planets keys: {list(divisional_charts['D1']['planets'].keys())}")
+                    if 'Sun' in divisional_charts['D1']['planets']:
+                        print(f"D1 Sun data: {divisional_charts['D1']['planets']['Sun']}")
+                else:
+                    print("No 'planets' key found in D1 chart")
+                    print(f"Full D1 chart structure: {divisional_charts['D1']}")
+            else:
+                print("No 'D1' key found in divisional_charts")
+                print(f"Available keys in divisional_charts: {list(divisional_charts.keys())}")
+        else:
+            print("divisional_charts variable not found in locals()")
+        
         print("All calculations completed successfully")
     except Exception as e:
         print(f"Error in calculations: {str(e)}")
@@ -319,7 +351,10 @@ def calculate_chart_internal(data):
         'chart_data': chart_data,
         'divisional_charts': divisional_charts,
         'yogas': yogas,
-        'ashtakavarga': ashtakavarga
+        'ashtakavarga': ashtakavarga,
+        'shadbala': shadbala,
+        'vimsopaka_bala': vimsopaka_bala,
+        'vimsopaka_bala_calculation_details': vimsopaka_bala_calculation_details
     }
     
     return response
@@ -433,7 +468,7 @@ def get_chart_data():
         result = calculate_chart_internal(data)
         
         # Extract just the chart_data from the result
-        chart_data = json.loads(result.data)['chart_data']
+        chart_data = result['chart_data']
         
         return jsonify(chart_data)
     except Exception as e:
@@ -565,6 +600,59 @@ def get_vimshottari_dasha():
         return jsonify(result['vimshottari_dasha'])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/get_transits', methods=['GET'])
+def get_transits():
+    """Calculate current planetary positions for transit overlay"""
+    try:
+        # Get current date and time in UTC
+        now = datetime.now(pytz.UTC)
+        
+        # Format the data for calculation
+        transit_data = {
+            'date': now.strftime('%Y-%m-%d'),
+            'time': now.strftime('%H:%M:%S'),
+            'latitude': 0.0,  # Using 0,0 as default location for transit calculations
+            'longitude': 0.0,
+            'timezone': 'UTC'
+        }
+        
+        # Calculate the transit positions
+        calculator = VedicCalculator()
+        result = calculator.calculate(
+            transit_data['date'],
+            transit_data['time'],
+            transit_data['latitude'],
+            transit_data['longitude'],
+            transit_data['timezone'],
+            ayanamsa='lahiri',
+            house_system='whole_sign'
+        )
+        
+        # Extract only the planetary positions for transit overlay
+        transit_positions = {}
+        for planet, data in result['planets'].items():
+            transit_positions[planet] = {
+                'longitude': data['longitude'],
+                'sign': data['sign'],
+                'sign_num': data['sign_num'],
+                'nakshatra': data['nakshatra'],
+                'nakshatra_lord': data['nakshatra_lord'],
+                'house': data['house'],
+                'retrograde': data['retrograde']
+            }
+        
+        return jsonify({
+            'success': True,
+            'transits': transit_positions,
+            'calculation_time': now.strftime('%Y-%m-%d %H:%M:%S %Z')
+        })
+    except Exception as e:
+        app.logger.error(f"Error calculating transits: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/test', methods=['GET'])
 def test():

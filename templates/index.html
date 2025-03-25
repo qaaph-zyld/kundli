@@ -186,6 +186,65 @@
         .yoga-strength.weak {
             color: #d63031;
         }
+        
+        /* Chart tooltip and details panel styles */
+        .chart-tooltip {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 250px;
+            font-size: 0.9rem;
+        }
+        
+        .chart-tooltip h5 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 1rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        
+        .chart-tooltip p {
+            margin-bottom: 5px;
+        }
+        
+        .chart-details-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 300px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            display: none;
+            z-index: 100;
+        }
+        
+        .details-content {
+            padding-right: 20px;
+        }
+        
+        .details-content h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+        
+        .planet {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .house-area:hover {
+            fill: rgba(200, 200, 200, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -282,26 +341,22 @@
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="shadbala-tab" data-bs-toggle="tab" data-bs-target="#shadbala" type="button" role="tab" aria-controls="shadbala" aria-selected="false">Shadbala</button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="vimsopaka-tab" data-bs-toggle="tab" data-bs-target="#vimsopaka" type="button" role="tab" aria-controls="vimsopaka" aria-selected="false">Vimsopaka Bala</button>
+                                </li>
                             </ul>
                             <div class="tab-content" id="resultTabsContent">
                                 <div class="tab-pane fade show active" id="chart" role="tabpanel" aria-labelledby="chart-tab">
                                     <div class="row">
-                                        <div class="col-md-8">
-                                            <div id="chart-container"></div>
+                                        <div class="col-12 text-end mb-2">
+                                            <div class="form-check form-switch d-inline-block me-2">
+                                                <input class="form-check-input" type="checkbox" id="transitToggle">
+                                                <label class="form-check-label" for="transitToggle">Show Transit Overlay</label>
+                                            </div>
                                         </div>
-                                        <div class="col-md-4">
-                                            <div class="card mb-3">
-                                                <div class="card-header bg-primary text-white">
-                                                    <h5 class="mb-0">Ascendant (Lagna)</h5>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div id="ascendant-info">
-                                                        <p><strong>Sign:</strong> <span id="asc-sign"></span></p>
-                                                        <p><strong>Degree:</strong> <span id="asc-degree"></span></p>
-                                                        <p><strong>Nakshatra:</strong> <span id="asc-nakshatra">-</span></p>
-                                                        <p><strong>Pada:</strong> <span id="asc-pada">-</span></p>
-                                                    </div>
-                                                </div>
+                                        <div class="col-12">
+                                            <div id="chart-container">
+                                                <div id="chart"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -496,6 +551,13 @@
                                     <p>Shadbala is a system used to calculate the strength of planets in a birth chart.</p>
                                     <div id="shadbala-content" class="mt-4">
                                         <!-- Shadbala content will be loaded here -->
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="vimsopaka" role="tabpanel" aria-labelledby="vimsopaka-tab">
+                                    <h5 class="mb-3">Vimsopaka Bala</h5>
+                                    <p>Vimsopaka Bala is a system used to calculate the strength of planets in a birth chart.</p>
+                                    <div id="vimsopaka-content" class="mt-4">
+                                        <!-- Vimsopaka Bala content will be loaded here -->
                                     </div>
                                 </div>
                             </div>
@@ -1093,11 +1155,23 @@
                 // Hide loading indicator
                 loadingDiv.style.display = 'none';
                 
-                // Show results
+                // Show results container
                 resultsDiv.style.display = 'block';
                 
-                // Display chart
-                createKundliChart(data, 'chart-container');
+                // Update chart
+                createKundliChart(data, 'chart');
+                
+                // Set up transit toggle
+                const transitToggle = document.getElementById('transitToggle');
+                transitToggle.addEventListener('change', function() {
+                    if (this.checked) {
+                        // Fetch transit data and update chart
+                        fetchTransitData(data);
+                    } else {
+                        // Redraw chart without transits
+                        createKundliChart(data, 'chart');
+                    }
+                });
                 
                 // Display planets data
                 displayPlanetsData(data.planets);
@@ -1128,6 +1202,39 @@
                 
                 // Display Shadbala data
                 displayShadbala(data.shadbala);
+                
+                // Display Vimsopaka Bala data
+                displayVimsopakaBala(data.vimsopaka_bala);
+            }
+            
+            // Function to fetch transit data and update chart
+            function fetchTransitData(birthData) {
+                fetch('/get_transits')
+                    .then(response => response.json())
+                    .then(transitData => {
+                        if (transitData.success) {
+                            // Redraw chart with transit data
+                            createKundliChart(birthData, 'chart', transitData);
+                            
+                            // Show transit calculation time
+                            const chartContainer = document.getElementById('chart-container');
+                            let transitTimeDiv = document.getElementById('transit-time');
+                            if (!transitTimeDiv) {
+                                transitTimeDiv = document.createElement('div');
+                                transitTimeDiv.id = 'transit-time';
+                                transitTimeDiv.className = 'text-muted small mt-2';
+                                chartContainer.appendChild(transitTimeDiv);
+                            }
+                            transitTimeDiv.textContent = `Transit positions as of: ${transitData.calculation_time}`;
+                        } else {
+                            console.error('Error fetching transit data:', transitData.error);
+                            alert('Failed to load transit data. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching transit data:', error);
+                        alert('Failed to load transit data. Please try again.');
+                    });
             }
             
             // Function to display Vimshottari Dasha data
@@ -1854,6 +1961,130 @@
                                 </div>
                             </div>
                         `).join('')}
+                    </div>
+                `;
+                container.appendChild(detailsDiv);
+            }
+            
+            // Function to display Vimsopaka Bala data
+            function displayVimsopakaBala(vimsopakaBalaData) {
+                const container = document.getElementById('vimsopaka-content');
+                if (!container) {
+                    console.error('Vimsopaka Bala content container not found');
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                // Check if vimsopakaBalaData exists
+                if (!vimsopakaBalaData || Object.keys(vimsopakaBalaData).length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">No Vimsopaka Bala data available</div>';
+                    return;
+                }
+                
+                // Create summary table
+                const summaryDiv = document.createElement('div');
+                summaryDiv.innerHTML = `
+                    <h4>Vimsopaka Bala Summary</h4>
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>Planet</th>
+                                <th>Total Points (out of 20)</th>
+                                <th>Percentage Strength</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(vimsopakaBalaData).map(([planet, data]) => {
+                                // Check if data and its properties exist
+                                const totalPoints = data && data.total_points !== undefined ? data.total_points.toFixed(2) : 'N/A';
+                                const percentage = data && data.percentage !== undefined ? data.percentage.toFixed(2) : 'N/A';
+                                const isStrong = data && data.is_strong !== undefined ? data.is_strong : false;
+                                
+                                return `
+                                <tr>
+                                    <td>${planet}</td>
+                                    <td>${totalPoints}</td>
+                                    <td>${percentage}%</td>
+                                    <td>${isStrong ? '<span class="text-success">Strong</span>' : '<span class="text-danger">Weak</span>'}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.appendChild(summaryDiv);
+                
+                // Create detailed accordion for each planet
+                const detailsDiv = document.createElement('div');
+                detailsDiv.innerHTML = `
+                    <h4 class="mt-4">Detailed Vimsopaka Bala</h4>
+                    <div class="accordion" id="vimsopakaAccordion">
+                        ${Object.entries(vimsopakaBalaData).map(([planet, data], index) => {
+                            // Check if data and its properties exist
+                            const chartPoints = data && data.chart_points ? data.chart_points : {};
+                            const totalPoints = data && data.total_points !== undefined ? data.total_points.toFixed(2) : 'N/A';
+                            const percentage = data && data.percentage !== undefined ? data.percentage.toFixed(2) : 'N/A';
+                            const isStrong = data && data.is_strong !== undefined ? data.is_strong : false;
+                            
+                            return `
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="vimsopakaHeading${index}">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#vimsopakaCollapse${index}" aria-expanded="false" aria-controls="vimsopakaCollapse${index}">
+                                        ${planet} Vimsopaka Bala Details
+                                    </button>
+                                </h2>
+                                <div id="vimsopakaCollapse${index}" class="accordion-collapse collapse" aria-labelledby="vimsopakaHeading${index}" data-bs-parent="#vimsopakaAccordion">
+                                    <div class="accordion-body">
+                                        <h5>Strength in Divisional Charts</h5>
+                                        <table class="table table-bordered table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Divisional Chart</th>
+                                                    <th>Dignity Factor</th>
+                                                    <th>Weight</th>
+                                                    <th>Points</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${Object.entries(chartPoints).map(([chart, chartData]) => {
+                                                    // Check if chartData and its properties exist
+                                                    const dignityFactor = chartData && chartData.dignity_factor !== undefined ? chartData.dignity_factor.toFixed(2) : 'N/A';
+                                                    const weight = chartData && chartData.weight !== undefined ? chartData.weight.toFixed(2) : 'N/A';
+                                                    const points = chartData && chartData.points !== undefined ? chartData.points.toFixed(2) : 'N/A';
+                                                    
+                                                    return `
+                                                    <tr>
+                                                        <td>${chart}</td>
+                                                        <td>${dignityFactor}</td>
+                                                        <td>${weight}</td>
+                                                        <td>${points}</td>
+                                                    </tr>
+                                                    `;
+                                                }).join('')}
+                                                <tr class="table-primary">
+                                                    <td colspan="3"><strong>Total Points (out of 20)</strong></td>
+                                                    <td><strong>${totalPoints}</strong></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        
+                                        <div class="mt-3">
+                                            <h5>Interpretation</h5>
+                                            <p>
+                                                ${planet} has a Vimsopaka Bala strength of ${percentage}%, making it 
+                                                ${isStrong ? 'strong' : 'weak'} in this chart. 
+                                                ${isStrong 
+                                                    ? `This indicates that ${planet} will generally produce favorable results related to the houses it rules and aspects.` 
+                                                    : `This indicates that ${planet} may struggle to produce favorable results related to the houses it rules and aspects.`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
                     </div>
                 `;
                 container.appendChild(detailsDiv);

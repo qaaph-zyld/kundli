@@ -1,0 +1,100 @@
+Below is a comprehensive MVP roadmap and description for a Vedic astrology calculation service that lays the foundation for a robust, scalable, and feature-rich platform.
+
+---
+
+## Overview
+
+The service is envisioned as a one-stop web-based Vedic astrology engine that not only calculates complex astrological charts (including all divisional charts) but also performs deep planetary, house, dasha, yoga, and nakshatra analyses. The MVP will focus on core functionalities that deliver immediate value to users—astute calculations and clear, interpretable results—while paving the way for future enhancements.
+
+---
+
+## MVP Goals & Objectives
+
+- **Accuracy & Reliability:** Deliver precise calculations for core charts and planetary data.
+- **User-Centric Design:** Offer an intuitive interface for both astrology professionals and enthusiasts.
+- **Scalability:** Architect the system to easily integrate additional features (e.g., advanced dasha systems, compatibility matching, and API integrations).
+- **Foundational Analytics:** Provide essential astrological interpretations and predictions based on core systems like Vimshottari dasha and primary divisional charts.
+
+---
+
+## Core MVP Features
+
+### 1. Chart Calculations
+- **Primary Chart (D1):** Generate the basic natal chart with accurate planetary positions (degrees/minutes/seconds) and house cusps.
+- **Key Divisional Charts:** Implement at least a select few divisional charts (e.g., D1, D9, D12) to start, with a clear pathway to incorporate all charts (D1–D60) in future updates.
+- **Aspect & Transit Visualization:** Basic transit charts and prediction overlays on the main chart.
+
+### 2. Planetary Analysis
+- **Dignity & Retrograde Effects:** Compute planetary dignity statuses (exaltation, debilitation) and flag retrograde motions.
+- **Foundational Strength Metrics:** Introduce simplified Shadbala calculations as a starting point.
+
+### 3. House Analysis
+- **House Lords & Positions:** Identify key house lords and their placements, ensuring users understand the influence of planetary positions.
+- **Bhava Chalit (Optional in MVP):** A simplified view for initial house analysis, with scope for deeper algorithms later.
+
+### 4. Dasha System
+- **Vimshottari Dasha:** Implement this primary dasha system to offer predictive insights on life events.
+- **Transit Predictions:** Integrate transit-based forecasts linked to dasha periods.
+
+### 5. Nakshatra Analysis
+- **Basic Nakshatra Data:** Calculate and display the user's nakshatra, corresponding pada, and primary nakshatra lord.
+- **Compatibility Overview:** Provide a straightforward nakshatra-based compatibility check.
+
+### 6. User Interface & API Integration
+- **Interactive Web Interface:** Develop a clean, responsive design that allows users to input birth details and visualize charts.
+- **API Endpoints:** Establish a RESTful API for potential integration with third-party astrology platforms or mobile apps.
+
+---
+
+## MVP Roadmap & Phases
+
+### Phase 1: Discovery & Planning (Month 1)
+- **Requirements Gathering:** Finalize functional specifications and prioritize features based on user impact.
+- **Design & Architecture:** Define technical architecture for the calculation engine, data storage, and front-end interface.
+- **UI/UX Prototyping:** Create wireframes and mockups focused on clarity and ease-of-use.
+
+### Phase 2: Core Calculation Engine (Months 2–3)
+- **Chart Engine Development:** Build the core engine for calculating the natal chart (D1), including planetary positions, house cusps, and aspects.
+- **Basic Planetary & House Analysis:** Develop modules for dignity, retrograde checks, and house lord identification.
+- **Vimshottari Dasha Module:** Integrate the primary dasha system for predictive analysis.
+
+### Phase 3: User Interface & API Integration (Months 4–5)
+- **Frontend Implementation:** Translate UI/UX designs into a responsive web application.
+- **API Development:** Build and document RESTful endpoints for core services.
+- **Data Visualization:** Integrate interactive chart displays and basic transit overlays.
+
+### Phase 4: Beta Testing & Iteration (Month 6)
+- **Internal Testing:** Conduct rigorous testing for calculation accuracy, UI responsiveness, and API performance.
+- **Beta Launch:** Roll out a beta version to a select group of users (astrologers and enthusiasts) to gather feedback.
+- **Iteration:** Refine calculations, address bugs, and polish the user experience based on feedback.
+
+### Phase 5: Post-MVP Enhancements (Beyond MVP)
+- **Advanced Charting:** Expand to include additional divisional charts (up to D60) and complex calculations like Bhava Chalit.
+- **Enhanced Analysis Modules:** Develop advanced Shadbala, Ashtakavarga, and detailed yoga calculations.
+- **Expanded Dasha Systems:** Integrate additional systems such as Yogini, Ashtottari, and Kala Chakra dashas.
+- **Additional Features:** Introduce compatibility matching (Guna Milan), Muhurta calculators, remedial measures, and comprehensive interpretation reports.
+
+---
+
+## Technical Architecture
+
+- **Backend Engine:** A modular calculation engine capable of handling various chart types and astrological algorithms.
+- **Database:** Structured storage for ephemeris data, user inputs, and historical calculation logs.
+- **Frontend:** A responsive web application built with modern frameworks (React/Vue) ensuring mobile compatibility.
+- **API Layer:** RESTful endpoints for integration, allowing external applications to utilize the astrology calculations.
+- **Scalability:** A microservices approach to allow independent scaling of calculation modules as additional features are integrated.
+
+---
+
+## Future Roadmap & Vision
+
+Post-MVP, the platform will evolve to include:
+- **Comprehensive Chart Suite:** Complete set of divisional charts (D1-D60) with seamless transitions.
+- **Deep Astrological Analytics:** In-depth planetary strength analyses, retrograde nuances, and combustion details.
+- **Enhanced Predictive Models:** Advanced dasha systems and real-time transit forecasting.
+- **Personalization & Recommendations:** Tailored remedial measures, detailed interpretation reports, and personalized astrology readings.
+- **Integration & Ecosystem:** Broader API integrations and mobile application support, creating a holistic astrological ecosystem.
+
+---
+
+This roadmap and MVP description establish a clear pathway for developing a feature-rich Vedic astrology service, ensuring that the initial release delivers robust, accurate calculations while leaving ample scope for future enhancements based on user feedback and market trends.

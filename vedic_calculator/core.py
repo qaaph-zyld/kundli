@@ -9,6 +9,7 @@ import pytz
 from .ascendant_calculator import AscendantCalculator, get_nikola_ascendant
 from .ashtakavarga import AshtakavargaCalculator
 from .shadbala import ShadbalaCalculator
+from .vimsopaka_bala import VimsopakaCalculator
 
 class VedicCalculator:
     """
@@ -1006,8 +1007,13 @@ class VedicCalculator:
             remainder = longitude % 30
             dwadasamsa_division = int(remainder / (30/12))
             
-            # Calculate the dwadasamsa sign
-            dwadasamsa_sign_num = (sign_num + dwadasamsa_division) % 12
+            # Determine the starting sign based on the sign
+            # For odd signs: starts with Leo
+            # For even signs: starts with Cancer
+            if sign_num % 2 == 0:  # Odd signs (0-based index)
+                dwadasamsa_sign_num = (4 + dwadasamsa_division) % 12
+            else:  # Even signs (0-based index)
+                dwadasamsa_sign_num = (3 + dwadasamsa_division) % 12
             
             # Calculate the exact longitude in the dwadasamsa sign
             dwadasamsa_longitude = dwadasamsa_sign_num * 30 + (remainder % (30/12)) * 12
@@ -1034,7 +1040,7 @@ class VedicCalculator:
             }
         
         return dwadasamsa
-
+    
     def _calculate_vimshamsa(self):
         """
         Calculate Vimshamsa chart (D20)
@@ -1989,88 +1995,134 @@ class VedicCalculator:
 
     def calculate_divisional_charts(self):
         """
-        Calculate divisional charts (Varga) for planets
+        Calculate divisional charts (D1, D9, D12)
         
         Returns:
-            Dictionary with divisional chart data
+            dict: Dictionary containing divisional charts
         """
-        # We'll implement basic divisional charts: D9 (Navamsa) and D12 (Dwadasamsa)
-        divisional_charts = {
-            'D9': self._calculate_navamsa(),
-            'D12': self._calculate_dwadasamsa()
+        print("Calculating divisional charts...")
+        
+        # D1 (Rashi) - Birth chart
+        d1_chart = {
+            'planets': {}
         }
+        
+        # Copy planets data to D1 chart
+        for planet, data in self.planets.items():
+            # Create a copy of the planet data
+            planet_data = data.copy()
+            
+            # Add sign_num based on longitude
+            planet_data['sign_num'] = int(data['longitude'] / 30)
+            
+            # Store in D1 chart
+            d1_chart['planets'][planet] = planet_data
+        
+        # D9 (Navamsha) - 9th division
+        d9_chart = self._calculate_navamsha_chart()
+        
+        # D12 (Dwadashamsha) - 12th division
+        d12_chart = self._calculate_dwadasamsha_chart()
+        
+        # Create divisional charts dictionary
+        divisional_charts = {
+            'D1': d1_chart,
+            'D9': d9_chart,
+            'D12': d12_chart
+        }
+        
+        # Debug: Print available charts
+        print(f"Calculated divisional charts: {list(divisional_charts.keys())}")
+        
+        # Debug: Print structure of each chart
+        for chart_name, chart_data in divisional_charts.items():
+            print(f"{chart_name} chart structure: {list(chart_data.keys())}")
+            if 'planets' in chart_data:
+                print(f"{chart_name} planets: {list(chart_data['planets'].keys())}")
+                if 'Sun' in chart_data['planets']:
+                    print(f"{chart_name} Sun data: {list(chart_data['planets']['Sun'].keys())}")
         
         return divisional_charts
     
-    def _calculate_navamsa(self):
+    def _calculate_navamsha_chart(self):
         """
-        Calculate Navamsa (D9) chart
+        Calculate Navamsha chart (D9)
         
         Returns:
-            Dictionary with planet positions in Navamsa chart
+            dict: Dictionary with planetary positions in Navamsha chart
         """
-        navamsa_positions = {}
+        print("Calculating Navamsha chart...")
         
-        # Calculate Navamsa positions for each planet
+        navamsha_planets = {}
+        
+        # Calculate Navamsha positions for each planet
         for planet, data in self.planets.items():
+            # Skip special points
+            if planet in ['Ketu']:
+                continue
+                
+            # Get the longitude
             longitude = data['longitude']
             
-            # Calculate Navamsa position (each Navamsa is 3°20')
-            navamsa_span = 3 + (1/3)  # 3°20' in decimal
+            # Calculate Navamsha position (each Navamsha is 3°20')
+            navamsha_span = 3 + (1/3)  # 3°20' in decimal
             
             # Get the sign of the planet
             sign_num = int(longitude / 30)
-            sign = self.ZODIAC_SIGNS[sign_num]
             
             # Calculate position within the sign
             position_in_sign = longitude % 30
             
-            # Calculate Navamsa number (0-8)
-            navamsa_num = int(position_in_sign / navamsa_span)
+            # Calculate Navamsha number (0-8)
+            navamsha_num = int(position_in_sign / navamsha_span)
             
-            # Determine Navamsa sign based on planet's sign and navamsa number
-            # For fire signs (Aries, Leo, Sagittarius): 0=Aries, 1=Taurus, etc.
-            # For earth signs (Taurus, Virgo, Capricorn): 0=Capricorn, 1=Aquarius, etc.
-            # For air signs (Gemini, Libra, Aquarius): 0=Libra, 1=Scorpio, etc.
-            # For water signs (Cancer, Scorpio, Pisces): 0=Cancer, 1=Leo, etc.
+            # Determine Navamsha sign based on the planet's sign and Navamsha number
+            if sign_num % 4 == 0:  # Fire signs (Aries, Leo, Sagittarius)
+                navamsha_sign_num = (navamsha_num) % 12
+            elif sign_num % 4 == 1:  # Earth signs (Taurus, Virgo, Capricorn)
+                navamsha_sign_num = (navamsha_num + 4) % 12
+            elif sign_num % 4 == 2:  # Air signs (Gemini, Libra, Aquarius)
+                navamsha_sign_num = (navamsha_num + 8) % 12
+            else:  # Water signs (Cancer, Scorpio, Pisces)
+                navamsha_sign_num = (navamsha_num) % 12
             
-            element = sign_num % 4  # 0=fire, 1=earth, 2=air, 3=water
+            # Calculate the exact longitude in the navamsha sign
+            navamsha_longitude = navamsha_sign_num * 30 + (position_in_sign % navamsha_span) * 9
             
-            if element == 0:  # Fire signs
-                navamsa_sign_num = navamsa_num % 12
-            elif element == 1:  # Earth signs
-                navamsa_sign_num = (navamsa_num + 9) % 12
-            elif element == 2:  # Air signs
-                navamsa_sign_num = (navamsa_num + 6) % 12
-            else:  # Water signs
-                navamsa_sign_num = (navamsa_num + 3) % 12
+            # Create a copy of the planet data
+            navamsha_data = data.copy()
             
-            navamsa_sign = self.ZODIAC_SIGNS[navamsa_sign_num]
+            # Update with Navamsha position
+            navamsha_data['sign'] = self.ZODIAC_SIGNS[navamsha_sign_num]
+            navamsha_data['sign_num'] = navamsha_sign_num
             
-            # Store the Navamsa position
-            navamsa_positions[planet] = {
-                'sign': navamsa_sign,
-                'sign_num': navamsa_sign_num,
-                'longitude': navamsa_sign_num * 30 + (position_in_sign % navamsa_span) * 9
-            }
+            # Store the Navamsha position
+            navamsha_planets[planet] = navamsha_data
         
-        return navamsa_positions
+        return {'planets': navamsha_planets}
     
-    def _calculate_dwadasamsa(self):
+    def _calculate_dwadasamsha_chart(self):
         """
-        Calculate Dwadasamsa (D12) chart
+        Calculate Dwadasamsha (D12) chart
         
         Returns:
-            Dictionary with planet positions in Dwadasamsa chart
+            dict: Dictionary with planet positions in Dwadasamsha chart
         """
-        dwadasamsa_positions = {}
+        print("Calculating Dwadasamsha chart...")
         
-        # Calculate Dwadasamsa positions for each planet
+        dwadasamsha_planets = {}
+        
+        # Calculate Dwadasamsha positions for each planet
         for planet, data in self.planets.items():
+            # Skip special points
+            if planet in ['Ketu']:
+                continue
+                
+            # Get the longitude
             longitude = data['longitude']
             
-            # Calculate Dwadasamsa position (each Dwadasamsa is 2°30')
-            dwadasamsa_span = 2.5  # 2°30' in decimal
+            # Calculate Dwadasamsha position (each Dwadasamsha is 2°30')
+            dwadasamsha_span = 2.5  # 2°30' in decimal
             
             # Get the sign of the planet
             sign_num = int(longitude / 30)
@@ -2078,23 +2130,28 @@ class VedicCalculator:
             # Calculate position within the sign
             position_in_sign = longitude % 30
             
-            # Calculate Dwadasamsa number (0-11)
-            dwadasamsa_num = int(position_in_sign / dwadasamsa_span)
+            # Calculate Dwadasamsha number (0-11)
+            dwadasamsha_num = int(position_in_sign / dwadasamsha_span)
             
-            # Determine Dwadasamsa sign
-            # For each sign, the first Dwadasamsa is the same sign, and then proceeds in zodiacal order
-            dwadasamsa_sign_num = (sign_num + dwadasamsa_num) % 12
-            dwadasamsa_sign = self.ZODIAC_SIGNS[dwadasamsa_sign_num]
+            # Determine Dwadasamsha sign
+            # For each sign, the first Dwadasamsha is the same sign, and then proceeds in zodiacal order
+            dwadasamsha_sign_num = (sign_num + dwadasamsha_num) % 12
             
-            # Store the Dwadasamsa position
-            dwadasamsa_positions[planet] = {
-                'sign': dwadasamsa_sign,
-                'sign_num': dwadasamsa_sign_num,
-                'longitude': dwadasamsa_sign_num * 30 + (position_in_sign % dwadasamsa_span) * 12
-            }
+            # Calculate the exact longitude in the dwadasamsha sign
+            dwadasamsha_longitude = dwadasamsha_sign_num * 30 + (position_in_sign % dwadasamsha_span) * 12
+            
+            # Create a copy of the planet data
+            dwadasamsha_data = data.copy()
+            
+            # Update with Dwadasamsha position
+            dwadasamsha_data['sign'] = self.ZODIAC_SIGNS[dwadasamsha_sign_num]
+            dwadasamsha_data['sign_num'] = dwadasamsha_sign_num
+            
+            # Store the Dwadasamsha position
+            dwadasamsha_planets[planet] = dwadasamsha_data
         
-        return dwadasamsa_positions
-
+        return {'planets': dwadasamsha_planets}
+    
     def calculate_shadbala(self):
         """
         Calculate Shadbala (planetary strengths) for all planets
@@ -2110,6 +2167,49 @@ class VedicCalculator:
         
         return shadbala_results
     
+    def calculate_vimsopaka_bala(self):
+        """
+        Calculate Vimsopaka Bala (20-point strength) for all planets.
+        
+        Returns:
+            dict: Dictionary containing Vimsopaka Bala results for all planets
+        """
+        from vedic_calculator.vimsopaka_bala import VimsopakaCalculator
+        
+        # Get all divisional charts directly
+        print("Calculating divisional charts for Vimsopaka Bala...")
+        divisional_charts = self.calculate_divisional_charts()
+        print(f"Divisional charts calculated. Available charts: {list(divisional_charts.keys())}")
+        
+        # Initialize Vimsopaka Bala calculator
+        print("Initializing VimsopakaCalculator...")
+        calculator = VimsopakaCalculator(divisional_charts)
+        
+        # Calculate Vimsopaka Bala for all planets
+        print("Calculating Vimsopaka Bala for all planets...")
+        try:
+            vimsopaka_bala = calculator.calculate_all_vimsopaka_bala()
+            print(f"Vimsopaka Bala calculation completed. Results: {list(vimsopaka_bala.keys())}")
+            return vimsopaka_bala
+        except Exception as e:
+            print(f"Error in Vimsopaka Bala calculation: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {}
+    
+    def get_all_divisional_charts(self):
+        """
+        Get all divisional charts.
+        
+        Returns:
+            dict: Dictionary containing all divisional charts
+        """
+        # Calculate divisional charts if not already calculated
+        if not hasattr(self, '_divisional_charts') or not self._divisional_charts:
+            self._divisional_charts = self.calculate_divisional_charts()
+            
+        return self._divisional_charts
+
     def calculate(self):
         """
         Calculate all astrological data
@@ -2141,6 +2241,9 @@ class VedicCalculator:
         # Calculate Shadbala
         shadbala_data = self.calculate_shadbala()
         
+        # Calculate Vimsopaka Bala
+        vimsopaka_data = self.calculate_vimsopaka_bala()
+        
         # Prepare result
         result = {
             'planets': self.planets,
@@ -2150,7 +2253,49 @@ class VedicCalculator:
             'dashas': dasha_data,
             'ashtakavarga': ashtakavarga_data,
             'divisional_charts': divisional_charts,
-            'shadbala': shadbala_data
+            'shadbala': shadbala_data,
+            'vimsopaka_bala': vimsopaka_data
         }
         
         return result
+
+    def calculate_vimsopaka_bala_details(self):
+        """
+        Calculate detailed information about Vimsopaka Bala calculation process for debugging.
+        
+        Returns:
+            dict: Dictionary containing detailed information about the Vimsopaka Bala calculation
+        """
+        try:
+            # Get all divisional charts
+            print("Calculating divisional charts for Vimsopaka Bala details...")
+            divisional_charts = self.calculate_divisional_charts()
+            
+            # Prepare detailed information
+            details = {
+                'divisional_charts_available': list(divisional_charts.keys()),
+                'chart_structures': {}
+            }
+            
+            # Check structure of each divisional chart
+            for chart_name, chart_data in divisional_charts.items():
+                details['chart_structures'][chart_name] = {
+                    'keys_available': list(chart_data.keys()),
+                    'has_planets': 'planets' in chart_data,
+                    'planets_available': list(chart_data['planets'].keys()) if 'planets' in chart_data else []
+                }
+                
+                # Check structure of Sun data in each chart for reference
+                if 'planets' in chart_data and 'Sun' in chart_data['planets']:
+                    details['chart_structures'][chart_name]['sun_data_structure'] = {
+                        'keys_available': list(chart_data['planets']['Sun'].keys()),
+                        'sign_num_available': 'sign_num' in chart_data['planets']['Sun'],
+                        'sign_available': 'sign' in chart_data['planets']['Sun']
+                    }
+            
+            return details
+        except Exception as e:
+            print(f"Error in calculate_vimsopaka_bala_details: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {'error': str(e)}

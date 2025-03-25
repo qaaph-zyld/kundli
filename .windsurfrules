@@ -1,3 +1,7 @@
 after each answer where we add some new feature, we want to run the app to check the feature
 once a new feature is added, and confirmed as good to go by me ("This is good, let's proceed"), you will make sure not to disrupt this cappability with any further answers, unless explicitly asked to do so by the user
 once something is added and haven't been confirmed as not good by me, you will retain and any further feature mustn't endanger what we already have.
+only vedic astrology related features will be added,no western astrology related features will be added
+ follow MVP_Roadmap_1.2 as our sole plan until we finish and reach 100% completion.
+proceed according to Development_protocol.md
+update MVP_Roadmap_1.2 after each feature added with completed status (checkmark, visual)

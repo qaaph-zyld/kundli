@@ -1,0 +1,47 @@
+# Comprehensive Jyotish System Integration Prompt
+
+## Purpose
+This prompt guides the AI assistant in developing an integrated roadmap that harmonizes the backend calculation architecture(MVP_Roadmap_1.2) with the frontend experience design (MVP_Roadmap_1.2_Frontend), ensuring both technical precision and intuitive user engagement for the Vedic Jyotish calculation service.
+
+## Core Integration Principles
+When working with this prompt, the AI should approach the task with these foundational principles:
+
+1. **Holistic System Coherence**: Backend calculations and frontend visualizations must function as a unified system rather than separate components.
+
+2. **Authentic Knowledge Transmission**: The interface should accurately convey classical Jyotish principles without dilution or misrepresentation.
+
+3. **Progressive Complexity Management**: Both technical implementation and user experience should unfold in coordinated phases of increasing sophistication.
+
+4. **Sacred-Modern Synthesis**: Traditional Vedic frameworks must be rendered through contemporary technology without compromising integrity.
+
+## Structured Integration Request
+
+"I require a comprehensive implementation strategy that aligns my existing Vedic Jyotish calculation engine (currently at 67% completion) with the proposed frontend experience roadmap. The strategy should:
+
+1. Create synchronized development milestones that coordinate backend calculation capabilities with frontend visualization features
+
+2. Identify critical dependencies between calculation modules and their corresponding interface components
+
+3. Establish data transmission protocols between the calculation engine and the visualization layer
+
+4. Develop a unified testing framework that validates both computational accuracy and interface functionality
+
+5. Prioritize features based on both technical feasibility and user value across development phases
+
+Please structure this as an integrated implementation roadmap with clear phase alignment, focusing particularly on how each calculation capability will manifest in the user experience. The roadmap should maintain fidelity to classical Jyotish principles while creating an intuitive modern interface."
+
+## Expertise Parameters
+Guide the AI to incorporate expertise in:
+- Vedic astrological systems and their computational requirements
+- Modern frontend architecture and visualization techniques
+- API design and data transmission patterns
+- Sacred geometry and its application in interface design
+- Progressive enhancement strategies for complex applications
+
+## Output Format Guidelines
+The response should include:
+1. A high-level integration overview visualized as a dual-track development timeline
+2. Phase-by-phase alignment of backend and frontend capabilities
+3. Critical integration points with specific data transmission requirements
+4. Risk assessment for cross-system dependencies
+5. Concrete examples of how specific calculations manifest in the interface

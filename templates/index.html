@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vedic Astrology Calculator</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Add D3.js library -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <!-- Add custom chart script -->
-    <script src="{{ url_for('static', filename='js/kundli-chart.js') }}"></script>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -335,10 +331,10 @@
                                     <button class="nav-link" id="yogas-tab" data-bs-toggle="tab" data-bs-target="#yogas" type="button" role="tab" aria-controls="yogas" aria-selected="false">Yogas</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="ashtakavarga-tab" data-bs-toggle="tab" data-bs-target="#ashtakavarga" type="button" role="tab" aria-controls="ashtakavarga" aria-selected="false">Ashtakavarga</button>
+                                    <button class="nav-link" id="shadbala-tab" data-bs-toggle="tab" data-bs-target="#shadbala" type="button" role="tab" aria-controls="shadbala" aria-selected="false">Shadbala</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="shadbala-tab" data-bs-toggle="tab" data-bs-target="#shadbala" type="button" role="tab" aria-controls="shadbala" aria-selected="false">Shadbala</button>
+                                    <button class="nav-link" id="ashtakavarga-tab" data-bs-toggle="tab" data-bs-target="#ashtakavarga" type="button" role="tab" aria-controls="ashtakavarga" aria-selected="false">Ashtakavarga</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="vimsopaka-tab" data-bs-toggle="tab" data-bs-target="#vimsopaka" type="button" role="tab" aria-controls="vimsopaka" aria-selected="false">Vimsopaka Bala</button>
@@ -525,6 +521,13 @@
                                         <!-- Yogas will be displayed here -->
                                     </div>
                                 </div>
+                                <div class="tab-pane fade" id="shadbala" role="tabpanel" aria-labelledby="shadbala-tab">
+                                    <h5 class="mb-3">Shadbala Calculations</h5>
+                                    <p>Shadbala is a system used to calculate the strength of planets in a birth chart.</p>
+                                    <div id="shadbala-content" class="mt-4">
+                                        <!-- Shadbala content will be loaded here -->
+                                    </div>
+                                </div>
                                 <div class="tab-pane fade" id="ashtakavarga" role="tabpanel" aria-labelledby="ashtakavarga-tab">
                                     <h5 class="mb-3">Ashtakavarga System</h5>
                                     <p>The Ashtakavarga system is a key Vedic astrology technique for evaluating planetary and house strengths.</p>
@@ -547,13 +550,6 @@
                                     <h6>House Strengths</h6>
                                     <div id="house-strength-container" class="mb-4">
                                         <!-- House strength data will be displayed here -->
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="shadbala" role="tabpanel" aria-labelledby="shadbala-tab">
-                                    <h5 class="mb-3">Shadbala Calculations</h5>
-                                    <p>Shadbala is a system used to calculate the strength of planets in a birth chart.</p>
-                                    <div id="shadbala-content" class="mt-4">
-                                        <!-- Shadbala content will be loaded here -->
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="vimsopaka" role="tabpanel" aria-labelledby="vimsopaka-tab">
@@ -731,6 +727,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="{{ url_for('static', filename='js/kundli-chart.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('kundli-form');
@@ -1166,15 +1164,17 @@
                 
                 // Set up transit toggle
                 const transitToggle = document.getElementById('transitToggle');
-                transitToggle.addEventListener('change', function() {
-                    if (this.checked) {
-                        // Fetch transit data and update chart
-                        fetchTransitData(data);
-                    } else {
-                        // Redraw chart without transits
-                        createKundliChart(data, 'chart');
-                    }
-                });
+                if (transitToggle) {
+                    transitToggle.addEventListener('change', function() {
+                        if (this.checked) {
+                            // Fetch transit data and update chart
+                            fetchTransitData(data);
+                        } else {
+                            // Redraw chart without transits
+                            createKundliChart(data, 'chart');
+                        }
+                    });
+                }
                 
                 // Display planets data
                 displayPlanetsData(data.planets);

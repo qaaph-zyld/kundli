@@ -138,7 +138,6 @@
         /* Yogas Styling */
         .yoga-category {
             margin-bottom: 20px;
-            border: 1px solid #ddd;
             border-radius: 5px;
             overflow: hidden;
         }
@@ -151,12 +150,13 @@
         }
         
         .yoga-item {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
+            margin-bottom: 15px;
+            transition: transform 0.2s;
         }
         
-        .yoga-item:last-child {
-            border-bottom: none;
+        .yoga-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
         .yoga-name {
@@ -167,12 +167,11 @@
         
         .yoga-description {
             color: #636e72;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
         
         .yoga-strength {
             font-style: italic;
-            color: #6c5ce7;
         }
         
         .yoga-strength.strong {
@@ -516,9 +515,13 @@
                                 </div>
                                 <div class="tab-pane fade" id="yogas" role="tabpanel" aria-labelledby="yogas-tab">
                                     <h5 class="mb-3">Yogas (Astrological Combinations)</h5>
-                                    <p>Yogas are special planetary combinations that indicate specific effects in a person's life. They can bring positive or negative influences depending on their nature and strength.</p>
+                                    <p>Yogas are specific planetary combinations that produce particular effects in a birth chart. Below are the yogas present in this chart:</p>
                                     
-                                    <div id="yogas-container">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i> Yogas indicate specific planetary combinations in your birth chart that influence various aspects of life including wealth, power, spirituality, and challenges.
+                                    </div>
+                                    
+                                    <div id="yogas-container" class="mt-4">
                                         <!-- Yogas will be displayed here -->
                                     </div>
                                 </div>
@@ -1514,26 +1517,45 @@
                     return;
                 }
                 
+                // Create category headers with proper names
+                const categoryNames = {
+                    'raja_yogas': 'Raja Yogas (Power & Authority)',
+                    'dhana_yogas': 'Dhana Yogas (Wealth & Prosperity)',
+                    'pancha_mahapurusha_yogas': 'Pancha Mahapurusha Yogas (Five Great Person Yogas)',
+                    'nabhasa_yogas': 'Nabhasa Yogas (Special Planetary Formations)',
+                    'other_yogas': 'Other Significant Yogas'
+                };
+                
                 // Loop through each yoga category
                 for (const [category, yogaItems] of Object.entries(yogas)) {
+                    // Skip empty categories
+                    if (!yogaItems || (Array.isArray(yogaItems) && yogaItems.length === 0)) {
+                        continue;
+                    }
+                    
                     const categoryDiv = document.createElement('div');
-                    categoryDiv.className = 'yoga-category';
+                    categoryDiv.className = 'yoga-category mb-4';
                     
                     // Create category header
-                    const categoryHeader = document.createElement('div');
-                    categoryHeader.className = 'yoga-category-header';
-                    categoryHeader.textContent = category;
+                    const categoryHeader = document.createElement('h5');
+                    categoryHeader.className = 'yoga-category-header mb-3';
+                    categoryHeader.textContent = categoryNames[category] || category;
                     categoryDiv.appendChild(categoryHeader);
                     
-                    // Handle different yoga data structures
+                    // For categories with multiple yogas
                     if (Array.isArray(yogaItems)) {
-                        // For categories with multiple yogas (like Raj Yogas)
-                        yogaItems.forEach(yoga => {
-                            const yogaDiv = createYogaItemDiv(yoga);
-                            categoryDiv.appendChild(yogaDiv);
-                        });
+                        if (yogaItems.length === 0) {
+                            const noYogaDiv = document.createElement('p');
+                            noYogaDiv.textContent = 'No yogas of this type found in the chart.';
+                            categoryDiv.appendChild(noYogaDiv);
+                        } else {
+                            yogaItems.forEach(yoga => {
+                                const yogaDiv = createYogaItemDiv(yoga);
+                                categoryDiv.appendChild(yogaDiv);
+                            });
+                        }
                     } else {
-                        // For single yoga items (like Gajakesari Yoga)
+                        // For single yoga items
                         const yogaDiv = createYogaItemDiv(yogaItems);
                         categoryDiv.appendChild(yogaDiv);
                     }
@@ -1545,54 +1567,94 @@
             // Helper function to create a yoga item div
             function createYogaItemDiv(yoga) {
                 const yogaDiv = document.createElement('div');
-                yogaDiv.className = 'yoga-item';
+                yogaDiv.className = 'yoga-item card mb-3';
                 
-                // Yoga name
-                const nameDiv = document.createElement('div');
-                nameDiv.className = 'yoga-name';
-                nameDiv.textContent = yoga.name;
-                yogaDiv.appendChild(nameDiv);
+                const cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+                
+                // Yoga name/type
+                const nameDiv = document.createElement('h6');
+                nameDiv.className = 'card-title yoga-name';
+                nameDiv.textContent = yoga.type || yoga.name || 'Unnamed Yoga';
+                cardBody.appendChild(nameDiv);
                 
                 // Yoga description
-                const descDiv = document.createElement('div');
-                descDiv.className = 'yoga-description';
-                descDiv.textContent = yoga.description;
-                yogaDiv.appendChild(descDiv);
+                if (yoga.description) {
+                    const descDiv = document.createElement('p');
+                    descDiv.className = 'card-text yoga-description';
+                    descDiv.textContent = yoga.description;
+                    cardBody.appendChild(descDiv);
+                }
+                
+                // Planets involved
+                if (yoga.planets && Array.isArray(yoga.planets)) {
+                    const planetsDiv = document.createElement('p');
+                    planetsDiv.className = 'yoga-planets';
+                    planetsDiv.innerHTML = `<strong>Planets:</strong> ${yoga.planets.join(', ')}`;
+                    cardBody.appendChild(planetsDiv);
+                }
+                
+                // Single planet (for Pancha Mahapurusha Yogas)
+                if (yoga.planet && !Array.isArray(yoga.planet)) {
+                    const planetDiv = document.createElement('p');
+                    planetDiv.className = 'yoga-planet';
+                    planetDiv.innerHTML = `<strong>Planet:</strong> ${yoga.planet}`;
+                    cardBody.appendChild(planetDiv);
+                }
+                
+                // House information if available
+                if (yoga.house) {
+                    const houseDiv = document.createElement('p');
+                    houseDiv.className = 'yoga-house';
+                    houseDiv.innerHTML = `<strong>House:</strong> ${yoga.house}`;
+                    cardBody.appendChild(houseDiv);
+                }
+                
+                // Position information (for Pancha Mahapurusha Yogas)
+                if (yoga.position) {
+                    const positionDiv = document.createElement('p');
+                    positionDiv.className = 'yoga-position';
+                    positionDiv.innerHTML = `<strong>Position:</strong> ${yoga.position}`;
+                    cardBody.appendChild(positionDiv);
+                }
                 
                 // Yoga strength if available
-                if (yoga.strength) {
+                if (yoga.strength !== undefined) {
                     const strengthDiv = document.createElement('div');
-                    strengthDiv.className = 'yoga-strength';
+                    strengthDiv.className = 'yoga-strength mt-2';
                     
-                    // Add strength-specific class
-                    if (yoga.strength.toLowerCase().includes('strong')) {
-                        strengthDiv.classList.add('strong');
-                    } else if (yoga.strength.toLowerCase().includes('moderate')) {
-                        strengthDiv.classList.add('moderate');
-                    } else if (yoga.strength.toLowerCase().includes('weak')) {
-                        strengthDiv.classList.add('weak');
+                    // Convert numerical strength to text
+                    let strengthText;
+                    let strengthClass;
+                    
+                    if (typeof yoga.strength === 'number') {
+                        if (yoga.strength >= 0.8) {
+                            strengthText = 'Strong';
+                            strengthClass = 'text-success';
+                        } else if (yoga.strength >= 0.5) {
+                            strengthText = 'Moderate';
+                            strengthClass = 'text-primary';
+                        } else {
+                            strengthText = 'Weak';
+                            strengthClass = 'text-warning';
+                        }
+                    } else {
+                        strengthText = yoga.strength;
+                        
+                        if (String(yoga.strength).toLowerCase().includes('strong')) {
+                            strengthClass = 'text-success';
+                        } else if (String(yoga.strength).toLowerCase().includes('moderate')) {
+                            strengthClass = 'text-primary';
+                        } else {
+                            strengthClass = 'text-warning';
+                        }
                     }
                     
-                    strengthDiv.textContent = `Strength: ${yoga.strength}`;
-                    yogaDiv.appendChild(strengthDiv);
+                    strengthDiv.innerHTML = `<strong>Strength:</strong> <span class="${strengthClass}">${strengthText}</span>`;
+                    cardBody.appendChild(strengthDiv);
                 }
                 
-                // Handle special case for Neechabhanga Raj Yoga which has planets array
-                if (yoga.planets && Array.isArray(yoga.planets)) {
-                    const planetsDiv = document.createElement('div');
-                    planetsDiv.className = 'yoga-planets';
-                    planetsDiv.style.marginTop = '10px';
-                    
-                    yoga.planets.forEach(planetInfo => {
-                        const planetDiv = document.createElement('div');
-                        planetDiv.style.marginBottom = '5px';
-                        planetDiv.textContent = planetInfo.description;
-                        planetsDiv.appendChild(planetDiv);
-                    });
-                    
-                    yogaDiv.appendChild(planetsDiv);
-                }
-                
+                yogaDiv.appendChild(cardBody);
                 return yogaDiv;
             }
             
@@ -2021,14 +2083,7 @@
                 detailsDiv.innerHTML = `
                     <h4 class="mt-4">Detailed Vimsopaka Bala</h4>
                     <div class="accordion" id="vimsopakaAccordion">
-                        ${Object.entries(vimsopakaBalaData).map(([planet, data], index) => {
-                            // Check if data and its properties exist
-                            const chartPoints = data && data.chart_points ? data.chart_points : {};
-                            const totalPoints = data && data.total_points !== undefined ? data.total_points.toFixed(2) : 'N/A';
-                            const percentage = data && data.percentage !== undefined ? data.percentage.toFixed(2) : 'N/A';
-                            const isStrong = data && data.is_strong !== undefined ? data.is_strong : false;
-                            
-                            return `
+                        ${Object.entries(vimsopakaBalaData).map(([planet, data], index) => `
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="vimsopakaHeading${index}">
                                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#vimsopakaCollapse${index}" aria-expanded="false" aria-controls="vimsopakaCollapse${index}">
@@ -2037,7 +2092,6 @@
                                 </h2>
                                 <div id="vimsopakaCollapse${index}" class="accordion-collapse collapse" aria-labelledby="vimsopakaHeading${index}" data-bs-parent="#vimsopakaAccordion">
                                     <div class="accordion-body">
-                                        <h5>Strength in Divisional Charts</h5>
                                         <table class="table table-bordered table-sm">
                                             <thead>
                                                 <tr>
@@ -2048,7 +2102,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                ${Object.entries(chartPoints).map(([chart, chartData]) => {
+                                                ${Object.entries(data.chart_points).map(([chart, chartData]) => {
                                                     // Check if chartData and its properties exist
                                                     const dignityFactor = chartData && chartData.dignity_factor !== undefined ? chartData.dignity_factor.toFixed(2) : 'N/A';
                                                     const weight = chartData && chartData.weight !== undefined ? chartData.weight.toFixed(2) : 'N/A';
@@ -2065,7 +2119,7 @@
                                                 }).join('')}
                                                 <tr class="table-primary">
                                                     <td colspan="3"><strong>Total Points (out of 20)</strong></td>
-                                                    <td><strong>${totalPoints}</strong></td>
+                                                    <td><strong>${data.total_points.toFixed(2)}</strong></td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -2073,18 +2127,16 @@
                                         <div class="mt-3">
                                             <h5>Interpretation</h5>
                                             <p>
-                                                ${planet} has a Vimsopaka Bala strength of ${percentage}%, making it 
-                                                ${isStrong ? 'strong' : 'weak'} in this chart. 
-                                                ${isStrong 
-                                                    ? `This indicates that ${planet} will generally produce favorable results related to the houses it rules and aspects.` 
-                                                    : `This indicates that ${planet} may struggle to produce favorable results related to the houses it rules and aspects.`}
+                                                ${planet} has a Vimsopaka Bala strength of ${data.percentage.toFixed(2)}%, making it 
+                                                ${data.is_strong 
+                                                    ? `strong. This indicates that ${planet} will generally produce favorable results related to the houses it rules and aspects.` 
+                                                    : `weak. This indicates that ${planet} may struggle to produce favorable results related to the houses it rules and aspects.`}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            `;
-                        }).join('')}
+                        `).join('')}
                     </div>
                 `;
                 container.appendChild(detailsDiv);

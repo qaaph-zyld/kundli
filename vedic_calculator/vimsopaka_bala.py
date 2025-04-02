@@ -385,8 +385,6 @@ class VimsopakaCalculator:
                     print(f"Vimsopaka Bala for {planet} calculated successfully: {results[planet]['total_points']} points")
                 except Exception as e:
                     print(f"Error calculating Vimsopaka Bala for {planet}: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
                     results[planet] = {
                         'planet': planet,
                         'error': str(e),
@@ -401,6 +399,4 @@ class VimsopakaCalculator:
             return results
         except Exception as e:
             print(f"Error in calculate_all_vimsopaka_bala: {str(e)}")
-            import traceback
-            traceback.print_exc()
             return {'error': str(e)}

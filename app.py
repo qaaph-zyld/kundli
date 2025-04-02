@@ -3,13 +3,26 @@ from flask_cors import CORS
 from datetime import datetime
 import json
 import pytz
+import os
+import shutil
 from vedic_calculator.core import VedicCalculator
+from vedic_calculator.yoga_system import YogaSystem
 import logging
+from utils.logger import app_logger, calc_logger, log_function_call, log_api_call
+from utils.error_checker import validate_chart_data, validate_planet_positions, run_comprehensive_validation
 
 app = Flask(__name__)
 CORS(app)
 
-# Set up logging
+# Create logs directory if it doesn't exist
+logs_dir = os.path.join(os.path.dirname(__file__), 'logs')
+if not os.path.exists(logs_dir):
+    os.makedirs(logs_dir)
+
+# Set up Flask logger to use our custom logger
+app.logger.handlers = []
+for handler in app_logger.handlers:
+    app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
 
 # Load cities database
@@ -71,12 +84,13 @@ def load_test_profiles():
 test_profiles = load_test_profiles()
 
 @app.route('/calculate', methods=['POST'])
+@log_api_call('calculate')
 def calculate():
     """Endpoint for the frontend to calculate a chart"""
     try:
-        print("Received request to /calculate endpoint")
+        app_logger.info("Received request to /calculate endpoint")
         data = request.json
-        print(f"Request data: {data}")
+        app_logger.debug(f"Request data: {json.dumps(data)}")
         
         # Format the data for our calculate_chart function
         chart_data = {
@@ -88,47 +102,57 @@ def calculate():
             # Using only Lahiri ayanamsa and Whole Sign house system as required
         }
         
-        print(f"Formatted chart data: {chart_data}")
+        app_logger.debug(f"Formatted chart data: {json.dumps(chart_data)}")
         
         # Call our existing calculate_chart function
         result = calculate_chart_internal(chart_data)
         
+        # Validate the calculation results
+        validation_results = run_comprehensive_validation(result)
+        if not validation_results['overall_result']:
+            app_logger.warning(f"Validation failed: {json.dumps(validation_results['details'])}")
+            # We still return the result, but log the validation failure
+            result['validation_warning'] = "Some validation checks failed. Results may not be accurate."
+        
         # Log Shadbala data for debugging
         if 'shadbala' in result:
-            app.logger.info(f"Shadbala data: {result['shadbala']}")
+            calc_logger.info(f"Shadbala data calculated successfully")
+            calc_logger.debug(f"Shadbala data: {json.dumps(result['shadbala'])}")
         else:
-            app.logger.warning("Shadbala data not found in calculation result")
+            app_logger.warning("Shadbala data not found in calculation result")
         
         # Log Vimsopaka Bala data for debugging
         if 'vimsopaka_bala' in result:
-            app.logger.info(f"Vimsopaka Bala data: {result['vimsopaka_bala']}")
-            app.logger.info(f"Vimsopaka Bala calculation details: {result.get('vimsopaka_bala_calculation_details', 'Not available')}")
+            calc_logger.info(f"Vimsopaka Bala data calculated successfully")
+            calc_logger.debug(f"Vimsopaka Bala calculation details available: {bool(result.get('vimsopaka_bala_calculation_details'))}")
         else:
-            app.logger.warning("Vimsopaka Bala data not found in calculation result")
+            app_logger.warning("Vimsopaka Bala data not found in calculation result")
         
         return result
     
     except Exception as e:
-        app.logger.error(f"Error in calculate endpoint: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        error_message = str(e)
+        app_logger.error(f"Error in calculate endpoint: {error_message}")
+        return jsonify({'error': error_message}), 500
 
 @app.route('/calculate_chart', methods=['POST'])
+@log_api_call('calculate_chart')
 def calculate_chart():
     """Original API endpoint for calculating a chart"""
     try:
         data = request.json
+        app_logger.info(f"Received request to /calculate_chart endpoint")
         return calculate_chart_internal(data)
     except Exception as e:
-        print(f"Error processing request: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        error_message = str(e)
+        app_logger.error(f"Error processing request: {error_message}")
+        return jsonify({'error': error_message}), 500
 
+@log_function_call(calc_logger)
 def calculate_chart_internal(data):
     """Internal function to calculate a chart from the provided data"""
-    print(f"Received data: {data}")
+    app_logger.info(f"Starting chart calculation")
+    calc_logger.debug(f"Calculation input data: {json.dumps(data)}")
     
     # Get date and time components
     date_str = data.get('date')
@@ -186,10 +210,10 @@ def calculate_chart_internal(data):
         )
         print("VedicCalculator initialized successfully")
     except Exception as e:
-        print(f"Error initializing calculator: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Error initializing calculator: {str(e)}'}), 500
+        error_message = str(e)
+        print(f"Error initializing calculator: {error_message}")
+        app_logger.error(f"Error initializing calculator: {error_message}")
+        return jsonify({'error': f'Error initializing calculator: {error_message}'}), 500
     
     # Get planets, houses, and other data from the calculator
     try:
@@ -254,10 +278,10 @@ def calculate_chart_internal(data):
         
         print("All calculations completed successfully")
     except Exception as e:
-        print(f"Error in calculations: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Error in calculations: {str(e)}'}), 500
+        error_message = str(e)
+        print(f"Error in calculations: {error_message}")
+        app_logger.error(f"Error in calculations: {error_message}")
+        return jsonify({'error': f'Error in calculations: {error_message}'}), 500
     
     # Format degrees for display
     def format_degrees(degree):
@@ -350,12 +374,28 @@ def calculate_chart_internal(data):
         'panchang': panchang,
         'chart_data': chart_data,
         'divisional_charts': divisional_charts,
-        'yogas': yogas,
         'ashtakavarga': ashtakavarga,
         'shadbala': shadbala,
         'vimsopaka_bala': vimsopaka_bala,
         'vimsopaka_bala_calculation_details': vimsopaka_bala_calculation_details
     }
+    
+    # Calculate yogas using the YogaSystem
+    try:
+        yoga_system = YogaSystem(response)
+        yogas = yoga_system.identify_all_yogas()
+        response['yogas'] = yogas
+        calc_logger.info(f"Identified {sum(len(yoga_list) for yoga_list in yogas.values())} yogas in the chart")
+    except Exception as e:
+        app_logger.error(f"Error calculating yogas in calculate_chart_internal: {str(e)}")
+        # If there's an error, set empty yogas
+        response['yogas'] = {
+            'raja_yogas': [],
+            'dhana_yogas': [],
+            'pancha_mahapurusha_yogas': [],
+            'nabhasa_yogas': [],
+            'other_yogas': []
+        }
     
     return response
 
@@ -473,13 +513,18 @@ def get_chart_data():
         return jsonify(chart_data)
     except Exception as e:
         print(f"Error getting chart data: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        app_logger.error(f"Error getting chart data: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/test_profiles', methods=['GET'])
 def get_test_profiles():
-    return jsonify(test_profiles)
+    """Return list of test profiles"""
+    try:
+        return jsonify(test_profiles)
+    except Exception as e:
+        error_message = str(e)
+        app_logger.error(f"Error getting test profiles: {error_message}")
+        return jsonify({'error': error_message}), 500
 
 @app.route('/load_test_profile/<int:profile_id>', methods=['GET'])
 def load_test_profile(profile_id):
@@ -550,17 +595,20 @@ def delete_test_profile(profile_id):
         return jsonify({"error": f"Failed to delete profile: {str(e)}"}), 500
 
 @app.route('/yogas', methods=['POST'])
+@log_api_call('get_yogas')
 def get_yogas():
     """
     Calculate yogas (astrological combinations)
     """
     try:
+        app_logger.info("Calculating yogas (astrological combinations)")
         data = request.get_json()
         
         # Validate required fields
         required_fields = ['date', 'time', 'latitude', 'longitude']
         for field in required_fields:
             if field not in data:
+                app_logger.warning(f"Missing required field: {field}")
                 return jsonify({'error': f'Missing required field: {field}'}), 400
         
         # Calculate chart
@@ -570,10 +618,24 @@ def get_yogas():
         if isinstance(result, tuple):
             return result
         
+        # Use the new YogaSystem to identify yogas
+        yoga_system = YogaSystem(result)
+        yogas = yoga_system.identify_all_yogas()
+        
+        # Add the yogas to the result
+        result['yogas'] = yogas
+        
+        # Log the number of yogas found
+        calc_logger.info(f"Found {sum(len(yoga_list) for yoga_list in yogas.values())} yogas in the chart")
+        for yoga_type, yoga_list in yogas.items():
+            calc_logger.debug(f"{yoga_type}: {len(yoga_list)} yogas found")
+        
         # Return only the yogas
-        return jsonify(result['yogas'])
+        return jsonify(yogas)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        error_message = str(e)
+        app_logger.error(f"Error calculating yogas: {error_message}")
+        return jsonify({'error': error_message}), 500
 
 @app.route('/vimshottari_dasha', methods=['POST'])
 def get_vimshottari_dasha():
@@ -602,9 +664,12 @@ def get_vimshottari_dasha():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/get_transits', methods=['GET'])
+@log_api_call('get_transits')
 def get_transits():
     """Calculate current planetary positions for transit overlay"""
     try:
+        app_logger.info("Calculating current planetary positions for transit overlay")
+        
         # Get current date and time in UTC
         now = datetime.now(pytz.UTC)
         
@@ -617,6 +682,8 @@ def get_transits():
             'timezone': 'UTC'
         }
         
+        app_logger.debug(f"Transit calculation input: {json.dumps(transit_data)}")
+        
         # Calculate the transit positions
         calculator = VedicCalculator()
         result = calculator.calculate(
@@ -628,6 +695,11 @@ def get_transits():
             ayanamsa='lahiri',
             house_system='whole_sign'
         )
+        
+        # Validate the transit data
+        if not validate_planet_positions(result['planets']):
+            app_logger.warning("Transit planet position validation failed")
+            # We still continue, but log the warning
         
         # Extract only the planetary positions for transit overlay
         transit_positions = {}
@@ -642,13 +714,15 @@ def get_transits():
                 'retrograde': data['retrograde']
             }
         
+        calc_logger.info(f"Transit calculation completed successfully for {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        
         return jsonify({
             'success': True,
             'transits': transit_positions,
             'calculation_time': now.strftime('%Y-%m-%d %H:%M:%S %Z')
         })
     except Exception as e:
-        app.logger.error(f"Error calculating transits: {str(e)}")
+        app_logger.error(f"Error calculating transits: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -658,6 +732,137 @@ def get_transits():
 def test():
     """Simple test endpoint to verify the server is working"""
     return jsonify({'status': 'ok', 'message': 'Server is working correctly'})
+
+@app.route('/system/status', methods=['GET'])
+@log_api_call('system_status')
+def system_status():
+    """
+    Check the status of the application and return system information
+    """
+    try:
+        # Get system information
+        import platform
+        import sys
+        import psutil
+        import os
+        
+        # Get memory usage
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        
+        # Get disk usage for logs directory
+        logs_path = os.path.join(os.path.dirname(__file__), 'logs')
+        if os.path.exists(logs_path):
+            _, _, free = shutil.disk_usage(logs_path)
+            disk_free_gb = free / (1024 ** 3)
+        else:
+            disk_free_gb = "N/A"
+        
+        # Check if log files exist and get their sizes
+        log_files = {}
+        if os.path.exists(logs_path):
+            for log_file in os.listdir(logs_path):
+                if log_file.endswith('.log'):
+                    file_path = os.path.join(logs_path, log_file)
+                    log_files[log_file] = {
+                        'size': os.path.getsize(file_path) / 1024,  # Size in KB
+                        'last_modified': datetime.fromtimestamp(os.path.getmtime(file_path)).strftime('%Y-%m-%d %H:%M:%S')
+                    }
+        
+        # Get recent errors from error log
+        recent_errors = []
+        error_log_path = os.path.join(logs_path, f'kundli_errors_{datetime.now().strftime("%Y%m%d")}.log')
+        if os.path.exists(error_log_path):
+            with open(error_log_path, 'r') as f:
+                lines = f.readlines()
+                # Get the last 10 error lines
+                error_lines = [line for line in lines if 'ERROR' in line][-10:]
+                recent_errors = error_lines
+        
+        status_data = {
+            'status': 'running',
+            'version': '1.0.0',
+            'uptime': str(datetime.now() - datetime.fromtimestamp(process.create_time())),
+            'system': {
+                'python_version': sys.version,
+                'platform': platform.platform(),
+                'processor': platform.processor()
+            },
+            'resources': {
+                'memory_usage_mb': memory_info.rss / (1024 * 1024),
+                'disk_free_gb': disk_free_gb
+            },
+            'logs': {
+                'log_files': log_files,
+                'recent_errors': recent_errors
+            }
+        }
+        
+        return jsonify(status_data)
+    except Exception as e:
+        app_logger.error(f"Error in system status endpoint: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+@app.route('/system/logs', methods=['GET'])
+@log_api_call('system_logs')
+def system_logs():
+    """
+    View application logs
+    """
+    try:
+        log_type = request.args.get('type', 'app')
+        lines = int(request.args.get('lines', 100))
+        
+        # Limit the number of lines to prevent excessive memory usage
+        if lines > 1000:
+            lines = 1000
+        
+        logs_path = os.path.join(os.path.dirname(__file__), 'logs')
+        
+        # Determine which log file to read
+        if log_type == 'app':
+            log_file = f'kundli_app_{datetime.now().strftime("%Y%m%d")}.log'
+        elif log_type == 'error':
+            log_file = f'kundli_errors_{datetime.now().strftime("%Y%m%d")}.log'
+        elif log_type == 'calc':
+            log_file = f'kundli_calculations_{datetime.now().strftime("%Y%m%d")}.log'
+        else:
+            return jsonify({'error': 'Invalid log type'}), 400
+        
+        log_path = os.path.join(logs_path, log_file)
+        
+        # Check if log file exists
+        if not os.path.exists(log_path):
+            return jsonify({
+                'log_type': log_type,
+                'log_file': log_file,
+                'exists': False,
+                'message': 'Log file does not exist'
+            })
+        
+        # Read the log file
+        with open(log_path, 'r') as f:
+            log_lines = f.readlines()
+        
+        # Get the last N lines
+        last_lines = log_lines[-lines:] if lines < len(log_lines) else log_lines
+        
+        return jsonify({
+            'log_type': log_type,
+            'log_file': log_file,
+            'exists': True,
+            'total_lines': len(log_lines),
+            'lines_returned': len(last_lines),
+            'content': last_lines
+        })
+    except Exception as e:
+        app_logger.error(f"Error in system logs endpoint: {str(e)}")
+        return jsonify({
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

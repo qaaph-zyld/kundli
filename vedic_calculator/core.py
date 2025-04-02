@@ -2193,8 +2193,6 @@ class VedicCalculator:
             return vimsopaka_bala
         except Exception as e:
             print(f"Error in Vimsopaka Bala calculation: {str(e)}")
-            import traceback
-            traceback.print_exc()
             return {}
     
     def get_all_divisional_charts(self):
@@ -2296,6 +2294,4 @@ class VedicCalculator:
             return details
         except Exception as e:
             print(f"Error in calculate_vimsopaka_bala_details: {str(e)}")
-            import traceback
-            traceback.print_exc()
             return {'error': str(e)}

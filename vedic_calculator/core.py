@@ -10,6 +10,7 @@ from .ascendant_calculator import AscendantCalculator, get_nikola_ascendant
 from .ashtakavarga import AshtakavargaCalculator
 from .shadbala import ShadbalaCalculator
 from .vimsopaka_bala import VimsopakaCalculator
+from .ishta_kashta_phala import IshtaKashtaCalculator
 
 class VedicCalculator:
     """
@@ -950,13 +951,18 @@ class VedicCalculator:
             remainder = longitude % 30
             navamsa_division = int(remainder / (30/9))
             
-            # Calculate the navamsa sign
-            if sign_num % 3 == 0:  # Movable signs (Chara)
-                navamsa_sign_num = (navamsa_division + sign_num) % 12
-            elif sign_num % 3 == 1:  # Fixed signs (Sthira)
-                navamsa_sign_num = (navamsa_division + sign_num + 9) % 12
-            else:  # Dual signs (Dwiswabhava)
-                navamsa_sign_num = (navamsa_division + sign_num + 6) % 12
+            # Determine the starting sign based on the sign
+            # For movable signs: Aries to Virgo
+            # For fixed signs: Leo to Capricorn
+            # For dual signs: Sagittarius to Taurus
+            sign_type = sign_num % 3  # 0=Movable, 1=Fixed, 2=Dual
+            
+            if sign_type == 0:  # Movable signs
+                navamsa_sign_num = navamsa_division % 12
+            elif sign_type == 1:  # Fixed signs
+                navamsa_sign_num = (4 + navamsa_division) % 12
+            else:  # Dual signs
+                navamsa_sign_num = (8 + navamsa_division) % 12
             
             # Calculate the exact longitude in the navamsa sign
             navamsa_longitude = navamsa_sign_num * 30 + (remainder % (30/9)) * 9
@@ -2172,51 +2178,148 @@ class VedicCalculator:
 
     def _calculate_dwadasamsha_chart(self):
         """
-        Calculate Dwadasamsha (D12) chart
+        Calculate Dwadasamsha (D12) chart - 12th division
         
         Returns:
-            dict: Dictionary with planet positions in Dwadasamsha chart
+            dict: Dictionary containing Dwadasamsha chart data
         """
         print("Calculating Dwadasamsha chart...")
         
         dwadasamsha_planets = {}
         
-        # Calculate Dwadasamsha positions for each planet
         for planet, data in self.planets.items():
             # Skip special points
             if planet in ['Ketu']:
                 continue
                 
-            # Get the longitude
+            # Get longitude and sign
             longitude = data['longitude']
-            
-            # Calculate Dwadasamsha position (each Dwadasamsha is 2°30')
-            dwadasamsha_span = 2.5  # 2°30' in decimal
-            
-            # Get the sign of the planet
             sign_num = int(longitude / 30)
             
-            # Calculate position within the sign
-            position_in_sign = longitude % 30
+            # Calculate position within the sign (0-30 degrees)
+            pos_in_sign = longitude % 30
             
-            # Calculate Dwadasamsha number (0-11)
-            dwadasamsha_num = int(position_in_sign / dwadasamsha_span)
+            # Calculate dwadasamsha division (each division is 2.5 degrees)
+            dwadasamsha_division = int(pos_in_sign / 2.5)
             
-            # Determine Dwadasamsha sign
-            # For each sign, the first Dwadasamsha is the same sign, and then proceeds in zodiacal order
-            dwadasamsha_sign_num = (sign_num + dwadasamsha_num) % 12
+            # Calculate dwadasamsha sign
+            # The first dwadasamsha of a sign corresponds to that sign itself,
+            # and the remaining dwadasamshas follow in zodiacal order
+            dwadasamsha_sign_num = (sign_num + dwadasamsha_division) % 12
             
-            # Calculate the exact longitude in the dwadasamsha sign
-            dwadasamsha_longitude = dwadasamsha_sign_num * 30 + (position_in_sign % dwadasamsha_span) * 12
+            # Get sign name
+            dwadasamsha_sign = self.ZODIAC_SIGNS[dwadasamsha_sign_num]
             
-            # Create a copy of the planet data
+            # Create dwadasamsha data
             dwadasamsha_data = data.copy()
-            
-            # Update with Dwadasamsha position
-            dwadasamsha_data['sign'] = self.ZODIAC_SIGNS[dwadasamsha_sign_num]
+            dwadasamsha_data['sign'] = dwadasamsha_sign
             dwadasamsha_data['sign_num'] = dwadasamsha_sign_num
             
-            # Store the Dwadasamsha position
+            # Store in dwadasamsha chart
             dwadasamsha_planets[planet] = dwadasamsha_data
         
+        # Calculate Ketu position (opposite to Rahu)
+        if 'Rahu' in dwadasamsha_planets:
+            rahu_longitude = dwadasamsha_planets['Rahu']['longitude']
+            ketu_longitude = (rahu_longitude + 180) % 360
+            ketu_sign_num = int(ketu_longitude / 30)
+            
+            dwadasamsha_planets['Ketu'] = {
+                'longitude': ketu_longitude,
+                'sign': self.ZODIAC_SIGNS[ketu_sign_num],
+                'house': self._get_house_number(ketu_longitude),
+                'isRetrograde': dwadasamsha_planets['Rahu']['isRetrograde']
+            }
+        
         return {'planets': dwadasamsha_planets}
+
+    def calculate_ishta_kashta_phala(self):
+        """
+        Calculate Ishta-Kashta Phala
+        
+        Returns:
+            Dictionary with Ishta-Kashta Phala data
+        """
+        # Create a birth chart dictionary with the required data
+        birth_chart = {
+            'planets': self.planets,
+            'houses': self.houses,
+            'ascendant': self.ascendant
+        }
+        
+        # Get Shadbala and Vimsopaka Bala results if available
+        shadbala_results = self.calculate_shadbala() if hasattr(self, 'calculate_shadbala') else None
+        vimsopaka_results = self.calculate_vimsopaka_bala() if hasattr(self, 'calculate_vimsopaka_bala') else None
+        
+        # Initialize the Ishta-Kashta calculator
+        calculator = IshtaKashtaCalculator(birth_chart, shadbala_results, vimsopaka_results)
+        
+        # Calculate Ishta-Kashta Phala for all planets
+        return calculator.calculate_all_ishta_kashta()
+
+    def _calculate_navamsha_chart(self):
+        """
+        Calculate Navamsha (D9) chart - 9th division
+        
+        Returns:
+            dict: Dictionary containing Navamsha chart data
+        """
+        print("Calculating Navamsha chart...")
+        
+        navamsha_planets = {}
+        
+        for planet, data in self.planets.items():
+            # Skip special points
+            if planet in ['Ketu']:
+                continue
+                
+            # Get longitude and sign
+            longitude = data['longitude']
+            sign_num = int(longitude / 30)
+            
+            # Calculate position within the sign (0-30 degrees)
+            pos_in_sign = longitude % 30
+            
+            # Calculate navamsha division (each division is 3.33 degrees)
+            navamsha_division = int(pos_in_sign / 3.33)
+            
+            # Determine the starting sign based on the sign
+            # For movable signs: Aries to Virgo
+            # For fixed signs: Leo to Capricorn
+            # For dual signs: Sagittarius to Taurus
+            sign_type = sign_num % 3  # 0=Movable, 1=Fixed, 2=Dual
+            
+            if sign_type == 0:  # Movable signs
+                navamsha_sign_num = navamsha_division % 12
+            elif sign_type == 1:  # Fixed signs
+                navamsha_sign_num = (4 + navamsha_division) % 12
+            else:  # Dual signs
+                navamsha_sign_num = (8 + navamsha_division) % 12
+            
+            # Calculate the exact longitude in the navamsha sign
+            navamsha_longitude = navamsha_sign_num * 30 + (pos_in_sign % 3.33) * 9
+            
+            # Create a copy of the planet data
+            navamsha_data = data.copy()
+            
+            # Update with Navamsha position
+            navamsha_data['sign'] = self.ZODIAC_SIGNS[navamsha_sign_num]
+            navamsha_data['sign_num'] = navamsha_sign_num
+            
+            # Store the Navamsha position
+            navamsha_planets[planet] = navamsha_data
+        
+        # Calculate Ketu position (opposite to Rahu)
+        if 'Rahu' in navamsha_planets:
+            rahu_longitude = navamsha_planets['Rahu']['longitude']
+            ketu_longitude = (rahu_longitude + 180) % 360
+            ketu_sign_num = int(ketu_longitude / 30)
+            
+            navamsha_planets['Ketu'] = {
+                'longitude': ketu_longitude,
+                'sign': self.ZODIAC_SIGNS[ketu_sign_num],
+                'house': self._get_house_number(ketu_longitude),
+                'isRetrograde': navamsha_planets['Rahu']['isRetrograde']
+            }
+        
+        return {'planets': navamsha_planets}

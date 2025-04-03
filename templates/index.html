@@ -334,6 +334,9 @@
                                     <button class="nav-link" id="shadbala-tab" data-bs-toggle="tab" data-bs-target="#shadbala" type="button" role="tab" aria-controls="shadbala" aria-selected="false">Shadbala</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="ishta-kashta-tab" data-bs-toggle="tab" data-bs-target="#ishta-kashta" type="button" role="tab" aria-controls="ishta-kashta" aria-selected="false">Ishta-Kashta</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="ashtakavarga-tab" data-bs-toggle="tab" data-bs-target="#ashtakavarga" type="button" role="tab" aria-controls="ashtakavarga" aria-selected="false">Ashtakavarga</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
@@ -526,6 +529,13 @@
                                     <p>Shadbala is a system used to calculate the strength of planets in a birth chart.</p>
                                     <div id="shadbala-content" class="mt-4">
                                         <!-- Shadbala content will be loaded here -->
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="ishta-kashta" role="tabpanel" aria-labelledby="ishta-kashta-tab">
+                                    <h5 class="mb-3">Ishta-Kashta Phala</h5>
+                                    <p>Ishta-Kashta Phala is a system used to calculate the strength of planets in a birth chart.</p>
+                                    <div id="ishta-kashta-content" class="mt-4">
+                                        <!-- Ishta-Kashta Phala content will be loaded here -->
                                     </div>
                                 </div>
                                 <div class="tab-pane fade" id="ashtakavarga" role="tabpanel" aria-labelledby="ashtakavarga-tab">
@@ -1208,6 +1218,9 @@
                 
                 // Display Vimsopaka Bala data
                 displayVimsopakaBala(data.vimsopaka_bala);
+                
+                // Display Ishta-Kashta Phala data
+                displayIshtaKashtaPhala(data.ishta_kashta_phala);
             }
             
             // Function to fetch transit data and update chart
@@ -2128,6 +2141,120 @@
                                             <h5>Interpretation</h5>
                                             <p>
                                                 ${planet} has a Vimsopaka Bala strength of ${data.percentage.toFixed(2)}%, making it 
+                                                ${data.is_strong 
+                                                    ? `strong. This indicates that ${planet} will generally produce favorable results related to the houses it rules and aspects.` 
+                                                    : `weak. This indicates that ${planet} may struggle to produce favorable results related to the houses it rules and aspects.`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                container.appendChild(detailsDiv);
+            }
+            
+            // Function to display Ishta-Kashta Phala data
+            function displayIshtaKashtaPhala(ishtaKashtaPhalaData) {
+                const container = document.getElementById('ishta-kashta-content');
+                if (!container) {
+                    console.error('Ishta-Kashta Phala content container not found');
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                // Check if ishtaKashtaPhalaData exists
+                if (!ishtaKashtaPhalaData || Object.keys(ishtaKashtaPhalaData).length === 0) {
+                    container.innerHTML = '<div class="alert alert-info">No Ishta-Kashta Phala data available</div>';
+                    return;
+                }
+                
+                // Create summary table
+                const summaryDiv = document.createElement('div');
+                summaryDiv.innerHTML = `
+                    <h4>Ishta-Kashta Phala Summary</h4>
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>Planet</th>
+                                <th>Total Points (out of 20)</th>
+                                <th>Percentage Strength</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(ishtaKashtaPhalaData).map(([planet, data]) => {
+                                // Check if data and its properties exist
+                                const totalPoints = data && data.total_points !== undefined ? data.total_points.toFixed(2) : 'N/A';
+                                const percentage = data && data.percentage !== undefined ? data.percentage.toFixed(2) : 'N/A';
+                                const isStrong = data && data.is_strong !== undefined ? data.is_strong : false;
+                                
+                                return `
+                                <tr>
+                                    <td>${planet}</td>
+                                    <td>${totalPoints}</td>
+                                    <td>${percentage}%</td>
+                                    <td>${isStrong ? '<span class="text-success">Strong</span>' : '<span class="text-danger">Weak</span>'}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+                container.appendChild(summaryDiv);
+                
+                // Create detailed accordion for each planet
+                const detailsDiv = document.createElement('div');
+                detailsDiv.innerHTML = `
+                    <h4 class="mt-4">Detailed Ishta-Kashta Phala</h4>
+                    <div class="accordion" id="ishta-kashta-accordion">
+                        ${Object.entries(ishtaKashtaPhalaData).map(([planet, data], index) => `
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="ishta-kashta-heading${index}">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#ishta-kashta-collapse${index}" aria-expanded="false" aria-controls="ishta-kashta-collapse${index}">
+                                        ${planet} Ishta-Kashta Phala Details
+                                    </button>
+                                </h2>
+                                <div id="ishta-kashta-collapse${index}" class="accordion-collapse collapse" aria-labelledby="ishta-kashta-heading${index}" data-bs-parent="#ishta-kashta-accordion">
+                                    <div class="accordion-body">
+                                        <table class="table table-bordered table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Divisional Chart</th>
+                                                    <th>Dignity Factor</th>
+                                                    <th>Weight</th>
+                                                    <th>Points</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${Object.entries(data.chart_points).map(([chart, chartData]) => {
+                                                    // Check if chartData and its properties exist
+                                                    const dignityFactor = chartData && chartData.dignity_factor !== undefined ? chartData.dignity_factor.toFixed(2) : 'N/A';
+                                                    const weight = chartData && chartData.weight !== undefined ? chartData.weight.toFixed(2) : 'N/A';
+                                                    const points = chartData && chartData.points !== undefined ? chartData.points.toFixed(2) : 'N/A';
+                                                    
+                                                    return `
+                                                    <tr>
+                                                        <td>${chart}</td>
+                                                        <td>${dignityFactor}</td>
+                                                        <td>${weight}</td>
+                                                        <td>${points}</td>
+                                                    </tr>
+                                                    `;
+                                                }).join('')}
+                                                <tr class="table-primary">
+                                                    <td colspan="3"><strong>Total Points (out of 20)</strong></td>
+                                                    <td><strong>${data.total_points.toFixed(2)}</strong></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        
+                                        <div class="mt-3">
+                                            <h5>Interpretation</h5>
+                                            <p>
+                                                ${planet} has an Ishta-Kashta Phala strength of ${data.percentage.toFixed(2)}%, making it 
                                                 ${data.is_strong 
                                                     ? `strong. This indicates that ${planet} will generally produce favorable results related to the houses it rules and aspects.` 
                                                     : `weak. This indicates that ${planet} may struggle to produce favorable results related to the houses it rules and aspects.`}

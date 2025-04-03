@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
 from datetime import datetime
 import json
@@ -11,7 +11,39 @@ import logging
 from utils.logger import app_logger, calc_logger, log_function_call, log_api_call
 from utils.error_checker import validate_chart_data, validate_planet_positions, run_comprehensive_validation
 
+# Custom JSON encoder to handle non-serializable objects
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        try:
+            # First try the default encoder
+            return super(CustomJSONEncoder, self).default(obj)
+        except TypeError:
+            # If that fails, return a string representation
+            return str(obj)
+
+# Helper function to make objects JSON serializable
+def make_json_serializable(obj):
+    if isinstance(obj, dict):
+        return {k: make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_json_serializable(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return [make_json_serializable(item) for item in obj]  # Convert tuple to list
+    elif isinstance(obj, set):
+        return [make_json_serializable(item) for item in obj]
+    elif hasattr(obj, '__dict__'):
+        return make_json_serializable(obj.__dict__)
+    else:
+        try:
+            # Check if object is JSON serializable
+            json.dumps(obj)
+            return obj
+        except (TypeError, OverflowError):
+            # If not serializable, convert to string
+            return str(obj)
+
 app = Flask(__name__)
+app.json_encoder = CustomJSONEncoder
 CORS(app)
 
 # Create logs directory if it doesn't exist
@@ -90,7 +122,7 @@ def calculate():
     try:
         app_logger.info("Received request to /calculate endpoint")
         data = request.json
-        app_logger.debug(f"Request data: {json.dumps(data)}")
+        app_logger.debug(f"Request data: {data}")
         
         # Format the data for our calculate_chart function
         chart_data = {
@@ -102,33 +134,45 @@ def calculate():
             # Using only Lahiri ayanamsa and Whole Sign house system as required
         }
         
-        app_logger.debug(f"Formatted chart data: {json.dumps(chart_data)}")
+        app_logger.debug(f"Formatted chart data: {chart_data}")
         
         # Call our existing calculate_chart function
         result = calculate_chart_internal(chart_data)
         
+        # Debug: Find non-serializable objects
+        try:
+            json.dumps(result)
+            app_logger.info("Result is JSON serializable")
+        except TypeError as e:
+            app_logger.error(f"Result is not JSON serializable: {str(e)}")
+            # Try to identify the problematic key
+            for key, value in result.items():
+                try:
+                    json.dumps({key: value})
+                except TypeError:
+                    app_logger.error(f"Non-serializable key found: {key}, type: {type(value)}")
+                    # If it's a dict, try to find the problematic sub-key
+                    if isinstance(value, dict):
+                        for sub_key, sub_value in value.items():
+                            try:
+                                json.dumps({sub_key: sub_value})
+                            except TypeError:
+                                app_logger.error(f"Non-serializable sub-key found: {key}.{sub_key}, type: {type(sub_value)}")
+                                # Convert to string if not serializable
+                                result[key][sub_key] = str(sub_value)
+                    else:
+                        # Convert to string if not serializable
+                        result[key] = str(value)
+        
         # Validate the calculation results
         validation_results = run_comprehensive_validation(result)
         if not validation_results['overall_result']:
-            app_logger.warning(f"Validation failed: {json.dumps(validation_results['details'])}")
+            app_logger.warning(f"Validation failed: {validation_results}")
             # We still return the result, but log the validation failure
             result['validation_warning'] = "Some validation checks failed. Results may not be accurate."
         
-        # Log Shadbala data for debugging
-        if 'shadbala' in result:
-            calc_logger.info(f"Shadbala data calculated successfully")
-            calc_logger.debug(f"Shadbala data: {json.dumps(result['shadbala'])}")
-        else:
-            app_logger.warning("Shadbala data not found in calculation result")
-        
-        # Log Vimsopaka Bala data for debugging
-        if 'vimsopaka_bala' in result:
-            calc_logger.info(f"Vimsopaka Bala data calculated successfully")
-            calc_logger.debug(f"Vimsopaka Bala calculation details available: {bool(result.get('vimsopaka_bala_calculation_details'))}")
-        else:
-            app_logger.warning("Vimsopaka Bala data not found in calculation result")
-        
-        return result
+        # Always return a jsonify'd response
+        return jsonify(make_json_serializable(result))
     
     except Exception as e:
         error_message = str(e)
@@ -142,7 +186,9 @@ def calculate_chart():
     try:
         data = request.json
         app_logger.info(f"Received request to /calculate_chart endpoint")
-        return calculate_chart_internal(data)
+        result = calculate_chart_internal(data)
+        # Always return a jsonify'd response
+        return jsonify(make_json_serializable(result))
     except Exception as e:
         error_message = str(e)
         app_logger.error(f"Error processing request: {error_message}")
@@ -152,7 +198,7 @@ def calculate_chart():
 def calculate_chart_internal(data):
     """Internal function to calculate a chart from the provided data"""
     app_logger.info(f"Starting chart calculation")
-    calc_logger.debug(f"Calculation input data: {json.dumps(data)}")
+    calc_logger.debug(f"Calculation input data: {data}")
     
     # Get date and time components
     date_str = data.get('date')
@@ -173,7 +219,7 @@ def calculate_chart_internal(data):
             # Try parsing without seconds
             local_time = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
         except ValueError:
-            return jsonify({'error': 'Invalid date/time format'}), 400
+            return jsonify({'error': 'Invalid date/time format'}), 500
     
     print(f"Parsed datetime: {local_time}")
     
@@ -183,20 +229,20 @@ def calculate_chart_internal(data):
         local_time = tz.localize(local_time)
         print(f"Localized datetime: {local_time}")
     except Exception as e:
-        return jsonify({'error': f'Invalid timezone: {str(e)}'}), 400
+        return jsonify({'error': f'Invalid timezone: {str(e)}'}), 500
     
     # Get coordinates
     latitude = data.get('latitude')
     longitude = data.get('longitude')
     
     if latitude is None or longitude is None:
-        return jsonify({'error': 'Latitude and longitude are required'}), 400
+        return jsonify({'error': 'Latitude and longitude are required'}), 500
     
     try:
         latitude = float(latitude)
         longitude = float(longitude)
     except ValueError:
-        return jsonify({'error': 'Invalid latitude or longitude'}), 400
+        return jsonify({'error': 'Invalid latitude or longitude'}), 500
     
     print(f"Coordinates: Lat {latitude}, Lon {longitude}")
     
@@ -258,23 +304,8 @@ def calculate_chart_internal(data):
         vimsopaka_bala_calculation_details = calculator.calculate_vimsopaka_bala_details()
         vimsopaka_bala = calculator.calculate_vimsopaka_bala()
         
-        # Debug: Print divisional charts structure
-        if 'divisional_charts' in locals():
-            print(f"Divisional charts keys: {list(divisional_charts.keys())}")
-            if 'D1' in divisional_charts:
-                print(f"D1 chart keys: {list(divisional_charts['D1'].keys())}")
-                if 'planets' in divisional_charts['D1']:
-                    print(f"D1 planets keys: {list(divisional_charts['D1']['planets'].keys())}")
-                    if 'Sun' in divisional_charts['D1']['planets']:
-                        print(f"D1 Sun data: {divisional_charts['D1']['planets']['Sun']}")
-                else:
-                    print("No 'planets' key found in D1 chart")
-                    print(f"Full D1 chart structure: {divisional_charts['D1']}")
-            else:
-                print("No 'D1' key found in divisional_charts")
-                print(f"Available keys in divisional_charts: {list(divisional_charts.keys())}")
-        else:
-            print("divisional_charts variable not found in locals()")
+        # Calculate Ishta-Kashta Phala
+        ishta_kashta_phala = calculator.calculate_ishta_kashta_phala()
         
         print("All calculations completed successfully")
     except Exception as e:
@@ -358,33 +389,52 @@ def calculate_chart_internal(data):
             'house': data['house']
         }
     
-    # Prepare response
+    # Simplify complex data structures to ensure JSON serializability
+    def simplify_for_json(obj):
+        if isinstance(obj, dict):
+            return {k: simplify_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [simplify_for_json(item) for item in obj]
+        elif isinstance(obj, set):
+            return [simplify_for_json(item) for item in obj]
+        elif hasattr(obj, '__dict__'):
+            return simplify_for_json(obj.__dict__)
+        else:
+            try:
+                # Test JSON serializability
+                json.dumps(obj)
+                return obj
+            except (TypeError, OverflowError):
+                return str(obj)
+    
+    # Prepare response with simplified data structures
     response = {
         'date': date_str,
         'time': time_str,
         'timezone': timezone,
         'latitude': latitude,
         'longitude': longitude,
-        'ascendant': ascendant,
-        'planets': formatted_planets,
-        'houses': houses,
-        'special_points': special_points,
-        'dasha': dasha,
-        'vimshottari_dasha': vimshottari_dasha,
-        'panchang': panchang,
-        'chart_data': chart_data,
-        'divisional_charts': divisional_charts,
-        'ashtakavarga': ashtakavarga,
-        'shadbala': shadbala,
-        'vimsopaka_bala': vimsopaka_bala,
-        'vimsopaka_bala_calculation_details': vimsopaka_bala_calculation_details
+        'ascendant': simplify_for_json(ascendant),
+        'planets': simplify_for_json(formatted_planets),
+        'houses': simplify_for_json(houses),
+        'special_points': simplify_for_json(special_points),
+        'dasha': simplify_for_json(dasha),
+        'vimshottari_dasha': simplify_for_json(vimshottari_dasha),
+        'panchang': simplify_for_json(panchang),
+        'chart_data': simplify_for_json(chart_data),
+        'divisional_charts': simplify_for_json(divisional_charts),
+        'ashtakavarga': simplify_for_json(ashtakavarga),
+        'shadbala': simplify_for_json(shadbala),
+        'vimsopaka_bala': simplify_for_json(vimsopaka_bala),
+        'vimsopaka_bala_calculation_details': simplify_for_json(vimsopaka_bala_calculation_details),
+        'ishta_kashta_phala': simplify_for_json(ishta_kashta_phala)
     }
     
     # Calculate yogas using the YogaSystem
     try:
         yoga_system = YogaSystem(response)
         yogas = yoga_system.identify_all_yogas()
-        response['yogas'] = yogas
+        response['yogas'] = simplify_for_json(yogas)
         calc_logger.info(f"Identified {sum(len(yoga_list) for yoga_list in yogas.values())} yogas in the chart")
     except Exception as e:
         app_logger.error(f"Error calculating yogas in calculate_chart_internal: {str(e)}")
@@ -397,6 +447,7 @@ def calculate_chart_internal(data):
             'other_yogas': []
         }
     
+    # Return a plain dictionary, not a jsonify'd response
     return response
 
 @app.route('/divisional_charts', methods=['POST'])
@@ -421,7 +472,7 @@ def get_divisional_charts():
             return result
         
         # Return only the divisional charts
-        return jsonify(result['divisional_charts'])
+        return jsonify(make_json_serializable(result['divisional_charts']))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -510,7 +561,7 @@ def get_chart_data():
         # Extract just the chart_data from the result
         chart_data = result['chart_data']
         
-        return jsonify(chart_data)
+        return jsonify(make_json_serializable(chart_data))
     except Exception as e:
         print(f"Error getting chart data: {str(e)}")
         app_logger.error(f"Error getting chart data: {str(e)}")
@@ -630,8 +681,8 @@ def get_yogas():
         for yoga_type, yoga_list in yogas.items():
             calc_logger.debug(f"{yoga_type}: {len(yoga_list)} yogas found")
         
-        # Return only the yogas
-        return jsonify(yogas)
+        # Always return a jsonify'd response
+        return jsonify(make_json_serializable(yogas))
     except Exception as e:
         error_message = str(e)
         app_logger.error(f"Error calculating yogas: {error_message}")
@@ -658,8 +709,8 @@ def get_vimshottari_dasha():
         if isinstance(result, tuple):
             return result
         
-        # Return only the Vimshottari Dasha
-        return jsonify(result['vimshottari_dasha'])
+        # Always return a jsonify'd response
+        return jsonify(make_json_serializable(result['vimshottari_dasha']))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -682,7 +733,7 @@ def get_transits():
             'timezone': 'UTC'
         }
         
-        app_logger.debug(f"Transit calculation input: {json.dumps(transit_data)}")
+        app_logger.debug(f"Transit calculation input: {transit_data}")
         
         # Calculate the transit positions
         calculator = VedicCalculator()
@@ -716,9 +767,10 @@ def get_transits():
         
         calc_logger.info(f"Transit calculation completed successfully for {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
         
+        # Always return a jsonify'd response
         return jsonify({
             'success': True,
-            'transits': transit_positions,
+            'transits': make_json_serializable(transit_positions),
             'calculation_time': now.strftime('%Y-%m-%d %H:%M:%S %Z')
         })
     except Exception as e:
@@ -798,7 +850,8 @@ def system_status():
             }
         }
         
-        return jsonify(status_data)
+        # Always return a jsonify'd response
+        return jsonify(make_json_serializable(status_data))
     except Exception as e:
         app_logger.error(f"Error in system status endpoint: {str(e)}")
         return jsonify({
@@ -850,6 +903,7 @@ def system_logs():
         # Get the last N lines
         last_lines = log_lines[-lines:] if lines < len(log_lines) else log_lines
         
+        # Always return a jsonify'd response
         return jsonify({
             'log_type': log_type,
             'log_file': log_file,

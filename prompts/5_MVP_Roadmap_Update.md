@@ -1,6 +1,6 @@
 # MVP Roadmap Update - April 2025
 
-## Current Progress: 80% Complete
+## Current Progress: 85% Complete
 
 ### Recently Completed Features
 
@@ -10,17 +10,18 @@
 - **Integration**: Connected to main calculation engine and included in API response
 - **Validation**: Verified calculations against classical references
 
+#### Ishta-Kashta Phala Implementation ✓
+- **Backend**: Implemented comprehensive calculation engine for benefic and malefic effects
+- **Frontend**: Created detailed UI with summary and detailed views
+- **Integration**: Connected to main calculation engine and included in API response
+- **Features**: Includes natural nature, dignity, house position, aspects, and associations factors
+
 ### In Progress Features
 
 #### Vimsopaka Bala Refinement (90% Complete)
 - **Backend**: Implemented core calculation engine
 - **Frontend**: Created basic UI for displaying results
 - **Pending**: Enhanced visualization and interpretive text
-
-#### Ishta-Kashta Phala (60% Complete)
-- **Backend**: Basic calculation framework implemented
-- **Pending**: Detailed implementation of benefic/malefic effects
-- **Pending**: Frontend integration and visualization
 
 ### Next Priority Features
 
@@ -63,7 +64,6 @@
 
 ### April 2025
 - Complete Vimsopaka Bala refinements
-- Finish Ishta-Kashta Phala implementation
 - Begin Transit Progression Engine enhancements
 
 ### May 2025
@@ -175,4 +175,4 @@ The successful completion of the MVP will be measured by:
    - Clear and helpful interpretive content
 
 ## Conclusion
-The Vedic Kundli Calculator is on track for completion by July 2025, with 80% of the MVP features already implemented. The focus for the coming months will be on refining the Vimsopaka Bala and Ishta-Kashta Phala systems, enhancing the transit progression engine, and implementing advanced dasha analysis and specialized divisional chart analysis. With continued progress at the current pace, the application will provide a comprehensive, accurate, and user-friendly Vedic astrology calculation service by the target completion date.
+The Vedic Kundli Calculator is on track for completion by July 2025, with 85% of the MVP features already implemented. The focus for the coming months will be on refining the Vimsopaka Bala and Transit Progression Engine, implementing Advanced Dasha Analysis and Specialized Divisional Chart Analysis, and addressing technical debt. With continued progress at the current pace, the application will provide a comprehensive, accurate, and user-friendly Vedic astrology calculation service by the target completion date.

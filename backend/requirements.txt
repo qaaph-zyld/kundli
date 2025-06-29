@@ -1,0 +1,33 @@
+# FastAPI and dependencies
+fastapi>=0.95.0
+uvicorn>=0.21.1
+pydantic>=1.10.7
+email-validator>=2.0.0
+python-dotenv>=1.0.0
+
+# Astronomical calculation libraries
+pyswisseph>=2.10.3
+vedicastro>=0.1.0
+
+# Database and caching
+sqlalchemy>=2.0.9
+redis>=4.5.4
+alembic>=1.10.3
+
+# Async support
+httpx>=0.24.0
+asyncio>=3.4.3
+
+# Authentication and security
+python-jose>=3.3.0
+passlib>=1.7.4
+bcrypt>=4.0.1
+
+# Testing
+pytest>=7.3.1
+pytest-asyncio>=0.21.0
+
+# Utilities
+python-multipart>=0.0.6
+aiofiles>=23.1.0
+loguru>=0.7.0

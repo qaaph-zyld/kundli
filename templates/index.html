@@ -1804,16 +1804,18 @@
                 const ascNakshatraSpan = document.getElementById('asc-nakshatra');
                 const ascPadaSpan = document.getElementById('asc-pada');
                 
+                // Check if elements exist before trying to set their content
                 if (ascendant) {
-                    ascSignSpan.textContent = ascendant.sign;
-                    ascDegreeSpan.textContent = ascendant.formatted_degree || formatDMS(ascendant.degree);
-                    ascNakshatraSpan.textContent = ascendant.nakshatra || '-';
-                    ascPadaSpan.textContent = ascendant.pada || '-';
+                    if (ascSignSpan) ascSignSpan.textContent = ascendant.sign || '-';
+                    if (ascDegreeSpan) ascDegreeSpan.textContent = ascendant.formatted_degree || formatDMS(ascendant.degree) || '-';
+                    if (ascNakshatraSpan) ascNakshatraSpan.textContent = ascendant.nakshatra || '-';
+                    if (ascPadaSpan) ascPadaSpan.textContent = ascendant.pada || '-';
                 } else {
-                    ascSignSpan.textContent = '-';
-                    ascDegreeSpan.textContent = '-';
-                    ascNakshatraSpan.textContent = '-';
-                    ascPadaSpan.textContent = '-';
+                    // Still check if elements exist
+                    if (ascSignSpan) ascSignSpan.textContent = '-';
+                    if (ascDegreeSpan) ascDegreeSpan.textContent = '-';
+                    if (ascNakshatraSpan) ascNakshatraSpan.textContent = '-';
+                    if (ascPadaSpan) ascPadaSpan.textContent = '-';
                 }
             }
             

@@ -6,6 +6,7 @@ import pytz
 import os
 import shutil
 from vedic_calculator.core import VedicCalculator
+from vedic_calculator.calculators.vedic_calculator_adapter import vedic_calculator_adapter
 from vedic_calculator.yoga_system import YogaSystem
 import logging
 from utils.logger import app_logger, calc_logger, log_function_call, log_api_call
@@ -139,6 +140,14 @@ def calculate():
         # Call our existing calculate_chart function
         result = calculate_chart_internal(chart_data)
         
+        # Always treat result as a dictionary
+        # Validate the calculation results
+        validation_results = run_comprehensive_validation(result)
+        if not validation_results['overall_result']:
+            app_logger.warning(f"Validation failed: {validation_results}")
+            # We still return the result, but log the validation failure
+            result['validation_warning'] = "Some validation checks failed. Results may not be accurate."
+            
         # Debug: Find non-serializable objects
         try:
             json.dumps(result)
@@ -164,15 +173,11 @@ def calculate():
                         # Convert to string if not serializable
                         result[key] = str(value)
         
-        # Validate the calculation results
-        validation_results = run_comprehensive_validation(result)
-        if not validation_results['overall_result']:
-            app_logger.warning(f"Validation failed: {validation_results}")
-            # We still return the result, but log the validation failure
-            result['validation_warning'] = "Some validation checks failed. Results may not be accurate."
-        
-        # Always return a jsonify'd response
-        return jsonify(make_json_serializable(result))
+        # Check if there's an error in the result
+        if 'error' in result:
+            return jsonify(result), 500
+        else:
+            return jsonify(result)
     
     except Exception as e:
         error_message = str(e)
@@ -246,67 +251,102 @@ def calculate_chart_internal(data):
     
     print(f"Coordinates: Lat {latitude}, Lon {longitude}")
     
-    # Initialize calculator with Lahiri ayanamsa (only option supported)
+    # Use the new multi-provider architecture through the adapter
     try:
-        calculator = VedicCalculator(
-            date=local_time,
-            lat=latitude,
-            lon=longitude,
-            ayanamsa='Lahiri'  # Only using Lahiri ayanamsa
-        )
-        print("VedicCalculator initialized successfully")
+        # Use the adapter to calculate the chart
+        app_logger.info("Using VedicCalculatorAdapter with multi-provider architecture")
+        
+        # Calculate chart using the adapter
+        chart_result = vedic_calculator_adapter.calculate_chart(local_time, latitude, longitude)
+        
+        # Log which calculation system was used
+        calculation_system = chart_result.get('calculation_system', 'unknown')
+        app_logger.info(f"Chart calculated using {calculation_system} system")
+        
+        # Extract data from the chart result
+        planets = chart_result.get('planets', {})
+        houses = chart_result.get('houses', [])
+        ascendant = chart_result.get('ascendant', {})
+        special_points = chart_result.get('special_points', {})
+        dasha = chart_result.get('dasha', {})
+        vimshottari_dasha = chart_result.get('vimshottari_dasha', {})
+        panchang = chart_result.get('panchang', {})
+        divisional_charts = chart_result.get('divisional_charts', {})
+        yogas = chart_result.get('yogas', [])
+        ashtakavarga = chart_result.get('ashtakavarga', {})
+        shadbala = chart_result.get('shadbala', {})
+        vimsopaka_bala = chart_result.get('vimsopaka_bala', {})
+        ishta_kashta_phala = chart_result.get('ishta_kashta_phala', {})
+        
+        # Add validation info if available
+        if 'calculation_validation' in chart_result:
+            app_logger.info(f"Calculation validation: {chart_result['calculation_validation']}")
+            
+        print("All calculations completed successfully using multi-provider architecture")
     except Exception as e:
         error_message = str(e)
-        print(f"Error initializing calculator: {error_message}")
-        app_logger.error(f"Error initializing calculator: {error_message}")
-        return jsonify({'error': f'Error initializing calculator: {error_message}'}), 500
-    
-    # Get planets, houses, and other data from the calculator
-    try:
-        # Get planets data
-        planets = calculator.planets
+        print(f"Error using multi-provider architecture: {error_message}")
+        app_logger.error(f"Error using multi-provider architecture: {error_message}")
         
-        # Get houses data (Whole Sign system only)
-        houses = calculator.houses
-        
-        # Get ascendant data
-        ascendant = calculator.ascendant
-        
-        # Get special points
-        special_points = calculator.special_points
-        
-        # Calculate dasha
-        dasha = calculator.calculate_dasha()
-        
-        # Calculate vimshottari dasha
-        vimshottari_dasha = calculator.calculate_vimshottari_dasha()
-        
-        # Calculate panchang
-        panchang = calculator.calculate_panchang()
-        
-        # Calculate divisional charts
-        divisional_charts = calculator.calculate_divisional_charts()
-        
-        # Detect yogas
-        yogas = calculator.detect_yogas()
-        
-        # Get Ashtakavarga data
-        ashtakavarga = {
-            'prastarashtakavarga': calculator.get_prastarashtakavarga(),
-            'sarvashtakavarga': calculator.get_sarvashtakavarga(),
-            'strength': calculator.get_ashtakavarga_strength()
-        }
-        
-        # Calculate Shadbala
-        shadbala = calculator.calculate_shadbala()
-        
-        # Calculate Vimsopaka Bala
-        vimsopaka_bala = calculator.calculate_vimsopaka_bala()
-        
-        # Calculate Ishta-Kashta Phala
-        ishta_kashta_phala = calculator.calculate_ishta_kashta_phala()
-        
-        print("All calculations completed successfully")
+        # Fallback to original calculator if needed
+        try:
+            app_logger.warning("Falling back to original VedicCalculator")
+            calculator = VedicCalculator(
+                date=local_time,
+                lat=latitude,
+                lon=longitude,
+                ayanamsa='Lahiri'  # Only using Lahiri ayanamsa
+            )
+            
+            # Get planets data
+            planets = calculator.planets
+            
+            # Get houses data (Whole Sign system only)
+            houses = calculator.houses
+            
+            # Get ascendant data
+            ascendant = calculator.ascendant
+            
+            # Get special points
+            special_points = calculator.special_points
+            
+            # Calculate dasha
+            dasha = calculator.calculate_dasha()
+            
+            # Calculate vimshottari dasha
+            vimshottari_dasha = calculator.calculate_vimshottari_dasha()
+            
+            # Calculate panchang
+            panchang = calculator.calculate_panchang()
+            
+            # Calculate divisional charts
+            divisional_charts = calculator.calculate_divisional_charts()
+            
+            # Detect yogas
+            yogas = calculator.detect_yogas()
+            
+            # Get Ashtakavarga data
+            ashtakavarga = {
+                'prastarashtakavarga': calculator.get_prastarashtakavarga(),
+                'sarvashtakavarga': calculator.get_sarvashtakavarga(),
+                'strength': calculator.get_ashtakavarga_strength()
+            }
+            
+            # Calculate Shadbala
+            shadbala = calculator.calculate_shadbala()
+            
+            # Calculate Vimsopaka Bala
+            vimsopaka_bala = calculator.calculate_vimsopaka_bala()
+            
+            # Calculate Ishta-Kashta Phala
+            ishta_kashta_phala = calculator.calculate_ishta_kashta_phala()
+            
+            print("All calculations completed successfully using fallback calculator")
+        except Exception as fallback_error:
+            error_message = str(fallback_error)
+            print(f"Error in fallback calculations: {error_message}")
+            app_logger.error(f"Error in fallback calculations: {error_message}")
+            return jsonify({'error': f'Error in calculations: {error_message}'}), 500
     except Exception as e:
         error_message = str(e)
         print(f"Error in calculations: {error_message}")
@@ -390,21 +430,23 @@ def calculate_chart_internal(data):
     
     # Simplify complex data structures to ensure JSON serializability
     def simplify_for_json(obj):
-        if isinstance(obj, dict):
-            return {k: simplify_for_json(v) for k, v in obj.items()}
-        elif isinstance(obj, (list, tuple)):
-            return [simplify_for_json(item) for item in obj]
-        elif isinstance(obj, set):
-            return [simplify_for_json(item) for item in obj]
-        elif hasattr(obj, '__dict__'):
-            return simplify_for_json(obj.__dict__)
-        else:
-            try:
-                # Test JSON serializability
-                json.dumps(obj)
+        """Simplify complex objects for JSON serialization with enhanced error handling"""
+        try:
+            if obj is None:
+                return None
+            elif isinstance(obj, dict):
+                return {k: simplify_for_json(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [simplify_for_json(item) for item in obj]
+            elif isinstance(obj, tuple):
+                return [simplify_for_json(item) for item in obj]
+            elif isinstance(obj, (int, float, str, bool, type(None))):
                 return obj
-            except (TypeError, OverflowError):
+            else:
                 return str(obj)
+        except Exception as e:
+            app_logger.error(f"Error in simplify_for_json: {str(e)}")
+            return f"<Error serializing object: {str(e)}>"
     
     # Prepare response with simplified data structures
     response = {
@@ -425,29 +467,29 @@ def calculate_chart_internal(data):
         'ashtakavarga': simplify_for_json(ashtakavarga),
         'shadbala': simplify_for_json(shadbala),
         'vimsopaka_bala': simplify_for_json(vimsopaka_bala),
-        'vimsopaka_bala_calculation_details': simplify_for_json(vimsopaka_bala_calculation_details),
         'ishta_kashta_phala': simplify_for_json(ishta_kashta_phala)
     }
     
-    # Calculate yogas using the YogaSystem
+    # Validate response data before returning
     try:
-        yoga_system = YogaSystem(response)
-        yogas = yoga_system.identify_all_yogas()
-        response['yogas'] = simplify_for_json(yogas)
-        calc_logger.info(f"Identified {sum(len(yoga_list) for yoga_list in yogas.values())} yogas in the chart")
+        # Check for any missing or None values that might cause frontend errors
+        for key, value in response.items():
+            if value is None:
+                app_logger.warning(f"Response contains None value for key: {key}")
+                # Replace None with appropriate empty structures based on expected type
+                if key in ['planets', 'houses', 'divisional_charts', 'yogas', 'shadbala', 'vimsopaka_bala']:
+                    response[key] = {}
+                elif key in ['dasha', 'vimshottari_dasha', 'panchang']:
+                    response[key] = {}
+                elif key in ['ashtakavarga']:
+                    response[key] = {'prastarashtakavarga': {}, 'sarvashtakavarga': {}, 'strength': {}}
+        
+        # Return the plain dictionary, not a jsonify'd response
+        # This will be jsonified by the calling function
+        return response
     except Exception as e:
-        app_logger.error(f"Error calculating yogas in calculate_chart_internal: {str(e)}")
-        # If there's an error, set empty yogas
-        response['yogas'] = {
-            'raja_yogas': [],
-            'dhana_yogas': [],
-            'pancha_mahapurusha_yogas': [],
-            'nabhasa_yogas': [],
-            'other_yogas': []
-        }
-    
-    # Return a plain dictionary, not a jsonify'd response
-    return response
+        app_logger.error(f"Error preparing response: {str(e)}")
+        return {'error': f'Error preparing response: {str(e)}'}
 
 @app.route('/divisional_charts', methods=['POST'])
 def get_divisional_charts():
@@ -774,15 +816,60 @@ def get_transits():
         })
     except Exception as e:
         app_logger.error(f"Error calculating transits: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 @app.route('/test', methods=['GET'])
 def test():
     """Simple test endpoint to verify the server is working"""
     return jsonify({'status': 'ok', 'message': 'Server is working correctly'})
+
+@app.route('/config/calculator', methods=['GET', 'POST'])
+@log_api_call('config_calculator')
+def config_calculator():
+    """Configure calculator settings"""
+    if request.method == 'POST':
+        try:
+            data = request.json
+            profile = data.get('profile')
+            
+            if profile not in ['speed_optimized', 'precision_optimized', 'balanced']:
+                return jsonify({'error': 'Invalid profile. Must be one of: speed_optimized, precision_optimized, balanced'}), 400
+                
+            # Set the performance profile
+            from vedic_calculator.calculators.calculator_dispatcher import calculator_dispatcher
+            calculator_dispatcher.set_performance_profile(profile)
+            
+            app_logger.info(f"Calculator profile set to {profile}")
+            return jsonify({'status': 'ok', 'profile': profile})
+            
+        except Exception as e:
+            error_message = str(e)
+            app_logger.error(f"Error setting calculator profile: {error_message}")
+            return jsonify({'error': f'Error setting calculator profile: {error_message}'}), 500
+    else:
+        # GET request - return current configuration
+        try:
+            from vedic_calculator.calculators.calculator_dispatcher import calculator_dispatcher
+            
+            # Get available calculators
+            available_calculators = list(calculator_dispatcher.calculators.keys())
+            
+            # Get current profile
+            current_profile = calculator_dispatcher.current_profile
+            
+            # Get performance metrics if available
+            performance_metrics = calculator_dispatcher.get_performance_metrics()
+            
+            return jsonify({
+                'available_calculators': available_calculators,
+                'current_profile': current_profile,
+                'available_profiles': list(calculator_dispatcher.performance_profiles.keys()),
+                'performance_metrics': performance_metrics
+            })
+            
+        except Exception as e:
+            error_message = str(e)
+            app_logger.error(f"Error getting calculator configuration: {error_message}")
+            return jsonify({'error': f'Error getting calculator configuration: {error_message}'}), 500
 
 @app.route('/system/status', methods=['GET'])
 @log_api_call('system_status')
@@ -849,8 +936,9 @@ def system_status():
             }
         }
         
-        # Always return a jsonify'd response
-        return jsonify(make_json_serializable(status_data))
+        response = jsonify(make_json_serializable(status_data))
+        return response
+    
     except Exception as e:
         app_logger.error(f"Error in system status endpoint: {str(e)}")
         return jsonify({

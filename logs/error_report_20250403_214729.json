@@ -1,0 +1,13 @@
+{
+  "validation_results": {
+    "timestamp": "2025-04-03T21:47:29.592006",
+    "overall_result": false,
+    "details": {
+      "chart_data": {
+        "valid": false,
+        "message": "Chart data validation failed"
+      }
+    }
+  },
+  "chart_data": [
+    

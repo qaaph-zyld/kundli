@@ -254,20 +254,17 @@ class VimsopakaCalculator:
         Returns:
             dict: Dictionary containing Vimsopaka Bala details
         """
-        # Define weights for each divisional chart
-        chart_weights = {
-            'D1': 3.5,  # Rashi (Birth chart)
-            'D9': 1.5,  # Navamsha
-            'D12': 1.0,  # Dwadashamsha
-        }
+        # Use the comprehensive weights defined in VARGA_WEIGHTS class constant
+        # This ensures we consider all classical divisional charts for accurate calculation
         
         # Initialize chart points
         chart_points = {}
         total_points = 0
         max_points = 0
+        available_charts = 0
         
         # Calculate points for each divisional chart
-        for chart_name, weight in chart_weights.items():
+        for chart_name, weight in self.VARGA_WEIGHTS.items():
             print(f"Processing {chart_name} for {planet}...")
             
             if chart_name not in self.divisional_charts:
@@ -323,7 +320,8 @@ class VimsopakaCalculator:
             total_points += points
             
             # Add to max possible points
-            max_points += 5 * weight  # 5 is the maximum points a planet can get in a chart
+            max_points += weight  # Maximum possible points based on weight
+            available_charts += 1
         
         # Calculate percentage
         percentage = (total_points / max_points) * 100 if max_points > 0 else 0
@@ -334,14 +332,23 @@ class VimsopakaCalculator:
         # Determine strength category
         strength_category = self.get_strength_category(percentage)
         
+        # Calculate normalized score (out of 20 points as per classical texts)
+        normalized_score = (total_points / max_points) * self.TOTAL_POINTS if max_points > 0 else 0
+        
+        # Generate interpretive text based on strength category
+        interpretation = self.get_vimsopaka_interpretation(planet, strength_category)
+        
         # Return Vimsopaka Bala details
         return {
             'planet': planet,
             'chart_points': chart_points,
             'total_points': round(total_points, 2),
+            'normalized_score': round(normalized_score, 2),
             'percentage': round(percentage, 2),
             'is_strong': is_strong,
-            'strength_category': strength_category
+            'strength_category': strength_category,
+            'available_charts': available_charts,
+            'interpretation': interpretation
         }
     
     def get_strength_category(self, percentage):
@@ -364,6 +371,42 @@ class VimsopakaCalculator:
             return "Weak"
         else:
             return "Very Weak"
+            
+    def get_vimsopaka_interpretation(self, planet, strength_category):
+        """
+        Generate interpretive text based on planet and strength category.
+        
+        Args:
+            planet (str): Planet name
+            strength_category (str): Strength category
+            
+        Returns:
+            str: Interpretive text
+        """
+        # Base interpretations by planet
+        base_interpretations = {
+            'Sun': "The Sun represents soul, vitality, authority, and father.",
+            'Moon': "The Moon represents mind, emotions, mother, and public life.",
+            'Mars': "Mars represents courage, siblings, energy, and competitive spirit.",
+            'Mercury': "Mercury represents intelligence, communication, education, and analytical abilities.",
+            'Jupiter': "Jupiter represents wisdom, knowledge, children, and fortune.",
+            'Venus': "Venus represents love, relationships, comforts, and artistic abilities.",
+            'Saturn': "Saturn represents discipline, longevity, hardships, and career.",
+            'Rahu': "Rahu represents obsession, foreign influences, and unconventional pursuits.",
+            'Ketu': "Ketu represents spirituality, detachment, and hidden talents."
+        }
+        
+        # Strength-based interpretations
+        strength_interpretations = {
+            'Excellent': f"With excellent Vimsopaka Bala, {planet}'s significations will manifest very positively across multiple areas of life. The native will experience great success in matters related to {planet}.",
+            'Good': f"With good Vimsopaka Bala, {planet}'s significations will manifest positively in most areas of life. The native will generally experience favorable outcomes in matters related to {planet}.",
+            'Moderate': f"With moderate Vimsopaka Bala, {planet}'s significations will manifest with mixed results. The native will experience both successes and challenges in matters related to {planet}.",
+            'Weak': f"With weak Vimsopaka Bala, {planet}'s significations may not manifest favorably. The native may face challenges in matters related to {planet} and may need remedial measures.",
+            'Very Weak': f"With very weak Vimsopaka Bala, {planet}'s significations will likely manifest negatively. The native will face significant challenges in matters related to {planet} and should consider appropriate remedial measures."
+        }
+        
+        # Combine base and strength interpretations
+        return f"{base_interpretations.get(planet, '')} {strength_interpretations.get(strength_category, '')}"
     
     def calculate_all_vimsopaka_bala(self):
         """
@@ -374,6 +417,7 @@ class VimsopakaCalculator:
         """
         planets = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu']
         results = {}
+        summary = {}
         
         print(f"Starting Vimsopaka Bala calculation for all planets: {planets}")
         
@@ -383,17 +427,38 @@ class VimsopakaCalculator:
                 try:
                     results[planet] = self.calculate_vimsopaka_bala(planet)
                     print(f"Vimsopaka Bala for {planet} calculated successfully: {results[planet]['total_points']} points")
+                    
+                    # Store summary data for quick reference
+                    summary[planet] = {
+                        'normalized_score': results[planet]['normalized_score'],
+                        'percentage': results[planet]['percentage'],
+                        'strength_category': results[planet]['strength_category']
+                    }
+                    
                 except Exception as e:
                     print(f"Error calculating Vimsopaka Bala for {planet}: {str(e)}")
                     results[planet] = {
                         'planet': planet,
                         'error': str(e),
                         'total_points': 0,
+                        'normalized_score': 0,
                         'percentage': 0,
                         'is_strong': False,
                         'strength_category': 'Error',
-                        'chart_points': {}
+                        'chart_points': {},
+                        'interpretation': f"Unable to calculate Vimsopaka Bala for {planet} due to an error."
                     }
+            
+            # Add overall summary to results
+            results['summary'] = summary
+            
+            # Sort planets by strength for ranking
+            ranked_planets = sorted(
+                [p for p in planets if p in results and 'percentage' in results[p]],
+                key=lambda p: results[p]['percentage'],
+                reverse=True
+            )
+            results['ranked_planets'] = ranked_planets
             
             print(f"Vimsopaka Bala calculation completed for all planets")
             return results

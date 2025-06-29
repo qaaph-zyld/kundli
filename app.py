@@ -301,7 +301,6 @@ def calculate_chart_internal(data):
         shadbala = calculator.calculate_shadbala()
         
         # Calculate Vimsopaka Bala
-        vimsopaka_bala_calculation_details = calculator.calculate_vimsopaka_bala_details()
         vimsopaka_bala = calculator.calculate_vimsopaka_bala()
         
         # Calculate Ishta-Kashta Phala

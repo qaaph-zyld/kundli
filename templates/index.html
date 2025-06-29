@@ -2057,6 +2057,76 @@
                     return;
                 }
                 
+                // Filter out non-planet keys like 'summary' and 'ranked_planets'
+                const planetKeys = Object.keys(vimsopakaBalaData).filter(key => 
+                    !['summary', 'ranked_planets', 'error'].includes(key));
+                
+                // Get ranked planets if available, otherwise use regular planet keys
+                const rankedPlanets = vimsopakaBalaData.ranked_planets || planetKeys;
+                
+                // Create visual strength meter
+                const strengthMeterDiv = document.createElement('div');
+                strengthMeterDiv.className = 'mb-4';
+                strengthMeterDiv.innerHTML = `
+                    <h4>Vimsopaka Bala Strength Visualization</h4>
+                    <div class="row">
+                        <div class="col-md-8 offset-md-2">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Very Weak</small>
+                                        <small>Weak</small>
+                                        <small>Moderate</small>
+                                        <small>Good</small>
+                                        <small>Excellent</small>
+                                    </div>
+                                    <div class="progress" style="height: 30px; background-color: #f8f9fa;">
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">0-20%</div>
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">20-40%</div>
+                                        <div class="progress-bar bg-info" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">40-60%</div>
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">60-80%</div>
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100">80-100%</div>
+                                    </div>
+                                    
+                                    <div class="planet-strength-indicators mt-4">
+                                        ${rankedPlanets.map(planet => {
+                                            const data = vimsopakaBalaData[planet];
+                                            if (!data || data.percentage === undefined) return '';
+                                            
+                                            // Determine color based on strength category
+                                            let colorClass;
+                                            if (data.percentage >= 80) colorClass = 'bg-success';
+                                            else if (data.percentage >= 60) colorClass = 'bg-primary';
+                                            else if (data.percentage >= 40) colorClass = 'bg-info';
+                                            else if (data.percentage >= 20) colorClass = 'bg-warning';
+                                            else colorClass = 'bg-danger';
+                                            
+                                            return `
+                                            <div class="mb-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span>${getPlanetSymbol(planet)} ${planet}</span>
+                                                    <span class="badge ${colorClass}">${data.strength_category}</span>
+                                                </div>
+                                                <div class="progress" style="height: 20px;">
+                                                    <div class="progress-bar ${colorClass}" role="progressbar" 
+                                                        style="width: ${data.percentage}%" 
+                                                        aria-valuenow="${data.percentage}" 
+                                                        aria-valuemin="0" 
+                                                        aria-valuemax="100">
+                                                        ${data.normalized_score.toFixed(2)}/20 (${data.percentage.toFixed(2)}%)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(strengthMeterDiv);
+                
                 // Create summary table
                 const summaryDiv = document.createElement('div');
                 summaryDiv.innerHTML = `
@@ -2065,24 +2135,34 @@
                         <thead>
                             <tr>
                                 <th>Planet</th>
-                                <th>Total Points (out of 20)</th>
+                                <th>Normalized Score (out of 20)</th>
                                 <th>Percentage Strength</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${Object.entries(vimsopakaBalaData).map(([planet, data]) => {
+                            ${rankedPlanets.map(planet => {
+                                const data = vimsopakaBalaData[planet];
+                                if (!data) return '';
+                                
                                 // Check if data and its properties exist
-                                const totalPoints = data && data.total_points !== undefined ? data.total_points.toFixed(2) : 'N/A';
-                                const percentage = data && data.percentage !== undefined ? data.percentage.toFixed(2) : 'N/A';
-                                const isStrong = data && data.is_strong !== undefined ? data.is_strong : false;
+                                const normalizedScore = data.normalized_score !== undefined ? data.normalized_score.toFixed(2) : 'N/A';
+                                const percentage = data.percentage !== undefined ? data.percentage.toFixed(2) : 'N/A';
+                                
+                                // Determine color class based on strength category
+                                let colorClass;
+                                if (data.percentage >= 80) colorClass = 'table-success';
+                                else if (data.percentage >= 60) colorClass = 'table-primary';
+                                else if (data.percentage >= 40) colorClass = 'table-info';
+                                else if (data.percentage >= 20) colorClass = 'table-warning';
+                                else colorClass = 'table-danger';
                                 
                                 return `
-                                <tr>
-                                    <td>${planet}</td>
-                                    <td>${totalPoints}</td>
+                                <tr class="${colorClass}">
+                                    <td>${getPlanetSymbol(planet)} ${planet}</td>
+                                    <td>${normalizedScore}</td>
                                     <td>${percentage}%</td>
-                                    <td>${isStrong ? '<span class="text-success">Strong</span>' : '<span class="text-danger">Weak</span>'}</td>
+                                    <td>${data.strength_category}</td>
                                 </tr>
                                 `;
                             }).join('')}
@@ -2094,65 +2174,164 @@
                 // Create detailed accordion for each planet
                 const detailsDiv = document.createElement('div');
                 detailsDiv.innerHTML = `
-                    <h4 class="mt-4">Detailed Vimsopaka Bala</h4>
+                    <h4 class="mt-4">Detailed Vimsopaka Bala Analysis</h4>
                     <div class="accordion" id="vimsopakaAccordion">
-                        ${Object.entries(vimsopakaBalaData).map(([planet, data], index) => `
+                        ${rankedPlanets.map((planet, index) => {
+                            const data = vimsopakaBalaData[planet];
+                            if (!data) return '';
+                            
+                            // Determine color class based on strength category
+                            let colorClass;
+                            if (data.percentage >= 80) colorClass = 'success';
+                            else if (data.percentage >= 60) colorClass = 'primary';
+                            else if (data.percentage >= 40) colorClass = 'info';
+                            else if (data.percentage >= 20) colorClass = 'warning';
+                            else colorClass = 'danger';
+                            
+                            return `
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="vimsopakaHeading${index}">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#vimsopakaCollapse${index}" aria-expanded="false" aria-controls="vimsopakaCollapse${index}">
-                                        ${planet} Vimsopaka Bala Details
+                                    <button class="accordion-button collapsed text-${colorClass}" type="button" data-bs-toggle="collapse" data-bs-target="#vimsopakaCollapse${index}" aria-expanded="false" aria-controls="vimsopakaCollapse${index}">
+                                        ${getPlanetSymbol(planet)} ${planet} - ${data.strength_category} (${data.normalized_score.toFixed(2)}/20)
                                     </button>
                                 </h2>
                                 <div id="vimsopakaCollapse${index}" class="accordion-collapse collapse" aria-labelledby="vimsopakaHeading${index}" data-bs-parent="#vimsopakaAccordion">
                                     <div class="accordion-body">
-                                        <table class="table table-bordered table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Divisional Chart</th>
-                                                    <th>Dignity Factor</th>
-                                                    <th>Weight</th>
-                                                    <th>Points</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                ${Object.entries(data.chart_points).map(([chart, chartData]) => {
-                                                    // Check if chartData and its properties exist
-                                                    const dignityFactor = chartData && chartData.dignity_factor !== undefined ? chartData.dignity_factor.toFixed(2) : 'N/A';
-                                                    const weight = chartData && chartData.weight !== undefined ? chartData.weight.toFixed(2) : 'N/A';
-                                                    const points = chartData && chartData.points !== undefined ? chartData.points.toFixed(2) : 'N/A';
-                                                    
-                                                    return `
-                                                    <tr>
-                                                        <td>${chart}</td>
-                                                        <td>${dignityFactor}</td>
-                                                        <td>${weight}</td>
-                                                        <td>${points}</td>
-                                                    </tr>
-                                                    `;
-                                                }).join('')}
-                                                <tr class="table-primary">
-                                                    <td colspan="3"><strong>Total Points (out of 20)</strong></td>
-                                                    <td><strong>${data.total_points.toFixed(2)}</strong></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                        
-                                        <div class="mt-3">
-                                            <h5>Interpretation</h5>
-                                            <p>
-                                                ${planet} has a Vimsopaka Bala strength of ${data.percentage.toFixed(2)}%, making it 
-                                                ${data.is_strong 
-                                                    ? `strong. This indicates that ${planet} will generally produce favorable results related to the houses it rules and aspects.` 
-                                                    : `weak. This indicates that ${planet} may struggle to produce favorable results related to the houses it rules and aspects.`}
-                                            </p>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h5>Divisional Chart Contributions</h5>
+                                                <table class="table table-bordered table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Chart</th>
+                                                            <th>Dignity</th>
+                                                            <th>Weight</th>
+                                                            <th>Points</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${Object.entries(data.chart_points || {}).map(([chart, chartData]) => {
+                                                            if (!chartData) return '';
+                                                            
+                                                            // Check if chartData and its properties exist
+                                                            const dignityFactor = chartData.dignity_factor !== undefined ? chartData.dignity_factor.toFixed(2) : 'N/A';
+                                                            const weight = chartData.weight !== undefined ? chartData.weight.toFixed(2) : 'N/A';
+                                                            const points = chartData.points !== undefined ? chartData.points.toFixed(2) : 'N/A';
+                                                            
+                                                            // Determine color based on dignity factor
+                                                            let rowClass = '';
+                                                            if (chartData.dignity_factor >= 0.75) rowClass = 'table-success';
+                                                            else if (chartData.dignity_factor >= 0.5) rowClass = 'table-primary';
+                                                            else if (chartData.dignity_factor >= 0.25) rowClass = 'table-warning';
+                                                            else rowClass = 'table-danger';
+                                                            
+                                                            return `
+                                                            <tr class="${rowClass}">
+                                                                <td>${chart}</td>
+                                                                <td>${dignityFactor}</td>
+                                                                <td>${weight}</td>
+                                                                <td>${points}</td>
+                                                            </tr>
+                                                            `;
+                                                        }).join('')}
+                                                        <tr class="table-primary">
+                                                            <td colspan="3"><strong>Total Points</strong></td>
+                                                            <td><strong>${data.total_points ? data.total_points.toFixed(2) : 'N/A'}</strong></td>
+                                                        </tr>
+                                                        <tr class="table-info">
+                                                            <td colspan="3"><strong>Normalized Score (out of 20)</strong></td>
+                                                            <td><strong>${data.normalized_score ? data.normalized_score.toFixed(2) : 'N/A'}</strong></td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card border-${colorClass} h-100">
+                                                    <div class="card-header bg-${colorClass} text-white">
+                                                        <h5 class="mb-0">Interpretation</h5>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <p>${data.interpretation || `${planet} has a Vimsopaka Bala strength of ${data.percentage ? data.percentage.toFixed(2) : 'N/A'}%, making it ${data.strength_category}.`}</p>
+                                                        
+                                                        <div class="mt-3">
+                                                            <h6>Strength Distribution</h6>
+                                                            <canvas id="vimsopakaPieChart${index}" width="100%" height="200"></canvas>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 `;
                 container.appendChild(detailsDiv);
+                
+                // Create pie charts for each planet after the DOM is updated
+                setTimeout(() => {
+                    rankedPlanets.forEach((planet, index) => {
+                        const data = vimsopakaBalaData[planet];
+                        if (!data || !data.chart_points) return;
+                        
+                        const chartElement = document.getElementById(`vimsopakaPieChart${index}`);
+                        if (!chartElement) return;
+                        
+                        const chartLabels = [];
+                        const chartData = [];
+                        const chartColors = [
+                            '#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0',
+                            '#3F51B5', '#009688', '#795548', '#607D8B', '#E91E63',
+                            '#CDDC39', '#00BCD4', '#8BC34A', '#673AB7', '#F44336'
+                        ];
+                        
+                        Object.entries(data.chart_points).forEach(([chart, chartInfo]) => {
+                            if (chartInfo && chartInfo.points !== undefined) {
+                                chartLabels.push(chart);
+                                chartData.push(chartInfo.points);
+                            }
+                        });
+                        
+                        // Create pie chart using Chart.js
+                        if (typeof Chart !== 'undefined') {
+                            new Chart(chartElement, {
+                                type: 'pie',
+                                data: {
+                                    labels: chartLabels,
+                                    datasets: [{
+                                        data: chartData,
+                                        backgroundColor: chartColors.slice(0, chartLabels.length),
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    plugins: {
+                                        legend: {
+                                            position: 'right',
+                                            labels: {
+                                                boxWidth: 12
+                                            }
+                                        },
+                                        tooltip: {
+                                            callbacks: {
+                                                label: function(context) {
+                                                    const label = context.label || '';
+                                                    const value = context.raw || 0;
+                                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                                    const percentage = Math.round((value / total) * 100);
+                                                    return `${label}: ${value.toFixed(2)} (${percentage}%)`;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }, 500);
             }
             
             // Function to display Ishta-Kashta Phala data

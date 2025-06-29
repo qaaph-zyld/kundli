@@ -2072,8 +2072,14 @@ class VedicCalculator:
         Returns:
             Dictionary with Vimsopaka Bala data for all planets
         """
-        calculator = VimsopakaCalculator(self)
-        return calculator.calculate_vimsopaka_bala()
+        # Get all divisional charts first
+        divisional_charts = self.get_all_divisional_charts()
+        
+        # Initialize VimsopakaCalculator with the divisional charts dictionary
+        calculator = VimsopakaCalculator(divisional_charts)
+        
+        # Calculate and return Vimsopaka Bala for all planets
+        return calculator.calculate_all_vimsopaka_bala()
         
     def get_all_divisional_charts(self):
         """
